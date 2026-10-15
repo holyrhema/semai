@@ -1,0 +1,245 @@
+{
+  "pack_id": "seaweed",
+  "name": "Rumput laut (Gracilaria)",
+  "version": "0.1",
+  "resource_field": "pond_frac_2017",
+  "products": [
+    {
+      "product_id": "gracilaria_kering",
+      "name": "Gracilaria kering (bahan agar)",
+      "conservation_alignment": 1,
+      "harvest_note": "Hanya di tambak yang sudah ada sejak 2017. Tidak boleh membuka mangrove.",
+      "competition_radius_m": 1000,
+      "factors": [
+        {
+          "field": "pond_frac_2017",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 1
+          },
+          "weight": 0.35,
+          "group": "bahan_baku",
+          "label": "Tambak yang sudah ada"
+        },
+        {
+          "field": "dist_coast_m",
+          "transform": {
+            "type": "decay",
+            "max": 1000
+          },
+          "weight": 0.15,
+          "group": "produksi",
+          "label": "Pasokan air payau"
+        },
+        {
+          "field": "dist_mangrove_m",
+          "transform": {
+            "type": "decay",
+            "max": 1000
+          },
+          "weight": 0.1,
+          "group": "bahan_baku",
+          "label": "Dekat mangrove (kualitas air)"
+        },
+        {
+          "field": "dist_road_m",
+          "transform": {
+            "type": "decay",
+            "max": 1500
+          },
+          "weight": 0.15,
+          "group": "produksi",
+          "label": "Akses jalan"
+        },
+        {
+          "field": "buildings_1km",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 200
+          },
+          "weight": 0.1,
+          "group": "produksi",
+          "label": "Tenaga kerja"
+        },
+        {
+          "field": "dist_market_m",
+          "transform": {
+            "type": "decay",
+            "max": 20000
+          },
+          "weight": 0.15,
+          "group": "pasar",
+          "label": "Dekat pengepul/pasar"
+        }
+      ],
+      "exclude_if": [
+        {
+          "field": "mangrove_frac_2017",
+          "op": ">",
+          "value": 0.2
+        },
+        {
+          "field": "pond_frac_2017",
+          "op": "<",
+          "value": 0.2
+        }
+      ],
+      "learning_modules": [
+        "hpp",
+        "kerja_sama_pembeli"
+      ]
+    },
+    {
+      "product_id": "olahan_agar",
+      "name": "Olahan rumput laut (jeli, dodol)",
+      "conservation_alignment": 0,
+      "harvest_note": "Bahan dari tambak yang sudah ada.",
+      "competition_radius_m": 2000,
+      "factors": [
+        {
+          "field": "pond_3km_ha",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 50
+          },
+          "weight": 0.25,
+          "group": "bahan_baku",
+          "label": "Tambak dalam 3 km"
+        },
+        {
+          "field": "buildings_1km",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 300
+          },
+          "weight": 0.2,
+          "group": "produksi",
+          "label": "Permukiman"
+        },
+        {
+          "field": "footfall_idx",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 1
+          },
+          "weight": 0.2,
+          "group": "pasar",
+          "label": "Keramaian"
+        },
+        {
+          "field": "dist_tourism_m",
+          "transform": {
+            "type": "decay",
+            "max": 15000
+          },
+          "weight": 0.2,
+          "group": "pasar",
+          "label": "Dekat tujuan wisata"
+        },
+        {
+          "field": "dist_road_m",
+          "transform": {
+            "type": "decay",
+            "max": 1000
+          },
+          "weight": 0.15,
+          "group": "produksi",
+          "label": "Akses jalan"
+        }
+      ],
+      "exclude_if": [
+        {
+          "field": "mangrove_frac_2024",
+          "op": ">",
+          "value": 0.5
+        }
+      ],
+      "learning_modules": [
+        "hpp",
+        "kemasan_pirt",
+        "jualan_online"
+      ]
+    },
+    {
+      "product_id": "polikultur_bandeng",
+      "name": "Polikultur Gracilaria + bandeng",
+      "conservation_alignment": 1,
+      "harvest_note": "Hanya di tambak yang sudah ada sejak 2017.",
+      "competition_radius_m": 1000,
+      "factors": [
+        {
+          "field": "pond_frac_2017",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 1
+          },
+          "weight": 0.4,
+          "group": "bahan_baku",
+          "label": "Tambak yang sudah ada"
+        },
+        {
+          "field": "dist_coast_m",
+          "transform": {
+            "type": "decay",
+            "max": 1000
+          },
+          "weight": 0.2,
+          "group": "produksi",
+          "label": "Pasokan air payau"
+        },
+        {
+          "field": "dist_road_m",
+          "transform": {
+            "type": "decay",
+            "max": 1500
+          },
+          "weight": 0.15,
+          "group": "produksi",
+          "label": "Akses jalan"
+        },
+        {
+          "field": "dist_market_m",
+          "transform": {
+            "type": "decay",
+            "max": 20000
+          },
+          "weight": 0.15,
+          "group": "pasar",
+          "label": "Dekat pasar ikan"
+        },
+        {
+          "field": "dist_mangrove_m",
+          "transform": {
+            "type": "decay",
+            "max": 1000
+          },
+          "weight": 0.1,
+          "group": "bahan_baku",
+          "label": "Dekat mangrove (kualitas air)"
+        }
+      ],
+      "exclude_if": [
+        {
+          "field": "mangrove_frac_2017",
+          "op": ">",
+          "value": 0.2
+        },
+        {
+          "field": "pond_frac_2017",
+          "op": "<",
+          "value": 0.2
+        }
+      ],
+      "learning_modules": [
+        "hpp",
+        "pisah_uang"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "active_packs": [
+    "mangrove",
+    "seaweed"
+  ],
+  "quadrant": {
+    "opportunity_min": 0.6,
+    "risk_min": 0.5,
+    "risk_field": "p_loss_500m"
+  }
+}

@@ -1,0 +1,347 @@
+{
+  "pack_id": "mangrove",
+  "name": "Mangrove",
+  "version": "0.1",
+  "resource_field": "mangrove_frac_2024",
+  "products": [
+    {
+      "product_id": "madu_mangrove",
+      "name": "Madu mangrove (kelulut)",
+      "conservation_alignment": 1,
+      "harvest_note": "Non-ekstraktif. Makin sehat mangrove, makin banyak nektar.",
+      "competition_radius_m": 2000,
+      "factors": [
+        {
+          "field": "mangrove_500m_ha",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 20
+          },
+          "weight": 0.25,
+          "group": "bahan_baku",
+          "label": "Luas mangrove 500 m"
+        },
+        {
+          "field": "seaward_500m_share",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 1
+          },
+          "weight": 0.1,
+          "group": "bahan_baku",
+          "label": "Porsi zona api-api/pedada (berbunga)"
+        },
+        {
+          "field": "dist_tourism_m",
+          "transform": {
+            "type": "decay",
+            "max": 10000
+          },
+          "weight": 0.2,
+          "group": "pasar",
+          "label": "Dekat tujuan wisata"
+        },
+        {
+          "field": "footfall_idx",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 1
+          },
+          "weight": 0.1,
+          "group": "pasar",
+          "label": "Keramaian (masjid, pasar, sekolah)"
+        },
+        {
+          "field": "dist_road_m",
+          "transform": {
+            "type": "decay",
+            "max": 1500
+          },
+          "weight": 0.15,
+          "group": "produksi",
+          "label": "Akses jalan"
+        },
+        {
+          "field": "buildings_1km",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 200
+          },
+          "weight": 0.1,
+          "group": "produksi",
+          "label": "Permukiman (tenaga kerja)"
+        },
+        {
+          "field": "p_loss_500m",
+          "transform": {
+            "type": "invert"
+          },
+          "weight": 0.1,
+          "group": "risiko",
+          "label": "Mangrove sekitar stabil"
+        }
+      ],
+      "exclude_if": [],
+      "learning_modules": [
+        "hpp",
+        "kemasan_pirt",
+        "jualan_online"
+      ]
+    },
+    {
+      "product_id": "kopi_mangrove",
+      "name": "Kopi mangrove",
+      "conservation_alignment": 0,
+      "harvest_note": "Pakai propagul yang jatuh dan matang saja. Jangan ambil di zona restorasi.",
+      "competition_radius_m": 3000,
+      "factors": [
+        {
+          "field": "middle_1km_ha",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 30
+          },
+          "weight": 0.25,
+          "group": "bahan_baku",
+          "label": "Luas zona bakau (Rhizophora) 1 km"
+        },
+        {
+          "field": "dist_tourism_m",
+          "transform": {
+            "type": "decay",
+            "max": 15000
+          },
+          "weight": 0.2,
+          "group": "pasar",
+          "label": "Dekat tujuan wisata"
+        },
+        {
+          "field": "footfall_idx",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 1
+          },
+          "weight": 0.1,
+          "group": "pasar",
+          "label": "Keramaian"
+        },
+        {
+          "field": "buildings_1km",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 300
+          },
+          "weight": 0.15,
+          "group": "produksi",
+          "label": "Permukiman"
+        },
+        {
+          "field": "dist_road_m",
+          "transform": {
+            "type": "decay",
+            "max": 1000
+          },
+          "weight": 0.2,
+          "group": "produksi",
+          "label": "Akses jalan"
+        },
+        {
+          "field": "p_loss_1km",
+          "transform": {
+            "type": "invert"
+          },
+          "weight": 0.1,
+          "group": "risiko",
+          "label": "Mangrove sekitar stabil"
+        }
+      ],
+      "exclude_if": [
+        {
+          "field": "mangrove_frac_2024",
+          "op": ">",
+          "value": 0.5
+        },
+        {
+          "field": "p_gain",
+          "op": ">",
+          "value": 0.6
+        }
+      ],
+      "learning_modules": [
+        "hpp",
+        "kemasan_pirt"
+      ]
+    },
+    {
+      "product_id": "olahan_pangan",
+      "name": "Olahan pangan mangrove (sirup/dodol pedada, tepung api-api)",
+      "conservation_alignment": 0,
+      "harvest_note": "Buah saja. Sisakan buah untuk regenerasi alami.",
+      "competition_radius_m": 2000,
+      "factors": [
+        {
+          "field": "seaward_1km_ha",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 30
+          },
+          "weight": 0.25,
+          "group": "bahan_baku",
+          "label": "Luas zona api-api/pedada 1 km"
+        },
+        {
+          "field": "footfall_idx",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 1
+          },
+          "weight": 0.2,
+          "group": "pasar",
+          "label": "Keramaian"
+        },
+        {
+          "field": "dist_market_m",
+          "transform": {
+            "type": "decay",
+            "max": 5000
+          },
+          "weight": 0.15,
+          "group": "pasar",
+          "label": "Dekat pasar"
+        },
+        {
+          "field": "buildings_1km",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 300
+          },
+          "weight": 0.2,
+          "group": "produksi",
+          "label": "Permukiman (dapur produksi)"
+        },
+        {
+          "field": "dist_road_m",
+          "transform": {
+            "type": "decay",
+            "max": 1000
+          },
+          "weight": 0.1,
+          "group": "produksi",
+          "label": "Akses jalan"
+        },
+        {
+          "field": "p_loss_1km",
+          "transform": {
+            "type": "invert"
+          },
+          "weight": 0.1,
+          "group": "risiko",
+          "label": "Mangrove sekitar stabil"
+        }
+      ],
+      "exclude_if": [
+        {
+          "field": "mangrove_frac_2024",
+          "op": ">",
+          "value": 0.5
+        },
+        {
+          "field": "p_gain",
+          "op": ">",
+          "value": 0.6
+        }
+      ],
+      "learning_modules": [
+        "hpp",
+        "kemasan_pirt",
+        "jualan_online"
+      ]
+    },
+    {
+      "product_id": "ekowisata",
+      "name": "Ekowisata mangrove",
+      "conservation_alignment": 1,
+      "harvest_note": "Patuhi daya dukung jalur dan perahu.",
+      "competition_radius_m": 4000,
+      "factors": [
+        {
+          "field": "mangrove_500m_ha",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 20
+          },
+          "weight": 0.25,
+          "group": "bahan_baku",
+          "label": "Luas mangrove 500 m"
+        },
+        {
+          "field": "dist_coast_m",
+          "transform": {
+            "type": "decay",
+            "max": 500
+          },
+          "weight": 0.1,
+          "group": "produksi",
+          "label": "Akses perahu"
+        },
+        {
+          "field": "dist_road_m",
+          "transform": {
+            "type": "decay",
+            "max": 1000
+          },
+          "weight": 0.2,
+          "group": "produksi",
+          "label": "Akses jalan"
+        },
+        {
+          "field": "dist_tourism_m",
+          "transform": {
+            "type": "decay",
+            "max": 20000
+          },
+          "weight": 0.25,
+          "group": "pasar",
+          "label": "Dekat arus wisatawan"
+        },
+        {
+          "field": "p_loss_500m",
+          "transform": {
+            "type": "invert"
+          },
+          "weight": 0.2,
+          "group": "risiko",
+          "label": "Mangrove sekitar stabil"
+        }
+      ],
+      "exclude_if": [
+        {
+          "field": "mangrove_frac_2024",
+          "op": ">",
+          "value": 0.6
+        },
+        {
+          "field": "p_gain",
+          "op": ">",
+          "value": 0.6
+        }
+      ],
+      "learning_modules": [
+        "hpp",
+        "jualan_online",
+        "kerja_sama_pembeli"
+      ]
+    }
+  ]
+}
