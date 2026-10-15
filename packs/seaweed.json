@@ -1,0 +1,245 @@
+{
+  "pack_id": "seaweed",
+  "name": "Seaweed (Gracilaria)",
+  "version": "0.1",
+  "resource_field": "pond_frac_2017",
+  "products": [
+    {
+      "product_id": "gracilaria_kering",
+      "name": "Dried Gracilaria (Raw Agar Material)",
+      "conservation_alignment": 1,
+      "harvest_note": "Cultivated only in ponds existing prior to 2017. Strictly forbidden to clear mangroves.",
+      "competition_radius_m": 1000,
+      "factors": [
+        {
+          "field": "pond_frac_2017",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 1
+          },
+          "weight": 0.35,
+          "group": "bahan_baku",
+          "label": "Pre-existing Pond Area"
+        },
+        {
+          "field": "dist_coast_m",
+          "transform": {
+            "type": "decay",
+            "max": 1000
+          },
+          "weight": 0.15,
+          "group": "produksi",
+          "label": "Brackish Water Intake"
+        },
+        {
+          "field": "dist_mangrove_m",
+          "transform": {
+            "type": "decay",
+            "max": 1000
+          },
+          "weight": 0.1,
+          "group": "bahan_baku",
+          "label": "Mangrove Proximity (Water Filtration)"
+        },
+        {
+          "field": "dist_road_m",
+          "transform": {
+            "type": "decay",
+            "max": 1500
+          },
+          "weight": 0.15,
+          "group": "produksi",
+          "label": "Transport Road Access"
+        },
+        {
+          "field": "buildings_1km",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 200
+          },
+          "weight": 0.1,
+          "group": "produksi",
+          "label": "Local Labor Availability"
+        },
+        {
+          "field": "dist_market_m",
+          "transform": {
+            "type": "decay",
+            "max": 20000
+          },
+          "weight": 0.15,
+          "group": "pasar",
+          "label": "Proximity to Buyer / Port"
+        }
+      ],
+      "exclude_if": [
+        {
+          "field": "mangrove_frac_2017",
+          "op": ">",
+          "value": 0.2
+        },
+        {
+          "field": "pond_frac_2017",
+          "op": "<",
+          "value": 0.2
+        }
+      ],
+      "learning_modules": [
+        "hpp",
+        "kerja_sama_pembeli"
+      ]
+    },
+    {
+      "product_id": "olahan_agar",
+      "name": "Value-Added Agar (Jelly & Seaweed Confectionery)",
+      "conservation_alignment": 0,
+      "harvest_note": "Procure seaweed raw materials from certified existing aquaculture ponds.",
+      "competition_radius_m": 2000,
+      "factors": [
+        {
+          "field": "pond_3km_ha",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 50
+          },
+          "weight": 0.25,
+          "group": "bahan_baku",
+          "label": "Pond Supply within 3km"
+        },
+        {
+          "field": "buildings_1km",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 300
+          },
+          "weight": 0.2,
+          "group": "produksi",
+          "label": "Kitchen & Labor Availability"
+        },
+        {
+          "field": "footfall_idx",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 1
+          },
+          "weight": 0.2,
+          "group": "pasar",
+          "label": "Footfall Density"
+        },
+        {
+          "field": "dist_tourism_m",
+          "transform": {
+            "type": "decay",
+            "max": 15000
+          },
+          "weight": 0.2,
+          "group": "pasar",
+          "label": "Proximity to Tourist Outlets"
+        },
+        {
+          "field": "dist_road_m",
+          "transform": {
+            "type": "decay",
+            "max": 1000
+          },
+          "weight": 0.15,
+          "group": "produksi",
+          "label": "Road Access"
+        }
+      ],
+      "exclude_if": [
+        {
+          "field": "mangrove_frac_2024",
+          "op": ">",
+          "value": 0.5
+        }
+      ],
+      "learning_modules": [
+        "hpp",
+        "kemasan_pirt",
+        "jualan_online"
+      ]
+    },
+    {
+      "product_id": "polikultur_bandeng",
+      "name": "Polyculture (Gracilaria + Milkfish)",
+      "conservation_alignment": 1,
+      "harvest_note": "Cultivated only in verified existing ponds.",
+      "competition_radius_m": 1000,
+      "factors": [
+        {
+          "field": "pond_frac_2017",
+          "transform": {
+            "type": "linear",
+            "min": 0,
+            "max": 1
+          },
+          "weight": 0.4,
+          "group": "bahan_baku",
+          "label": "Pre-existing Pond Basin"
+        },
+        {
+          "field": "dist_coast_m",
+          "transform": {
+            "type": "decay",
+            "max": 1000
+          },
+          "weight": 0.2,
+          "group": "produksi",
+          "label": "Brackish Water Flow"
+        },
+        {
+          "field": "dist_road_m",
+          "transform": {
+            "type": "decay",
+            "max": 1500
+          },
+          "weight": 0.15,
+          "group": "produksi",
+          "label": "Road Access"
+        },
+        {
+          "field": "dist_market_m",
+          "transform": {
+            "type": "decay",
+            "max": 20000
+          },
+          "weight": 0.15,
+          "group": "pasar",
+          "label": "Proximity to Fish Market"
+        },
+        {
+          "field": "dist_mangrove_m",
+          "transform": {
+            "type": "decay",
+            "max": 1000
+          },
+          "weight": 0.1,
+          "group": "bahan_baku",
+          "label": "Mangrove Water Quality Proximity"
+        }
+      ],
+      "exclude_if": [
+        {
+          "field": "mangrove_frac_2017",
+          "op": ">",
+          "value": 0.2
+        },
+        {
+          "field": "pond_frac_2017",
+          "op": "<",
+          "value": 0.2
+        }
+      ],
+      "learning_modules": [
+        "hpp",
+        "pisah_uang"
+      ]
+    }
+  ]
+}
