@@ -10,7 +10,8 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '8080', 10);
+const HOST = '0.0.0.0'; // REQUIRED by Cloud Run
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const DATA_BASE_URL = process.env.DATA_BASE_URL || 'https://storage.googleapis.com/semai-data-hrs/data/';
 
@@ -21,7 +22,7 @@ let edgesCache: any = null;
 let packsCache: Record<string, any> = {};
 
 async function initializeServerCache() {
-  console.log("Loading static data into Node server memory...");
+  console.log("Loading static data into Node server memory from:", DATA_BASE_URL);
   try {
     const [gridRes, umkmRes, nodesRes, edgesRes, packsIdxRes] = await Promise.all([
       fetch(`${DATA_BASE_URL}grid.geojson`),
@@ -47,13 +48,15 @@ async function initializeServerCache() {
   }
 }
 
-// System Prompts
+// Health Check for Cloud Run
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
 const SYSTEM_PROMPT_BUILDER = `
 You are SEMAI, an AI spatial economics advisor for programme officers, government planners, and conservation builders in Teluk Jor, East Lombok.
-
 LANGUAGE RULE:
 - Detect the user's language. If the user writes in Bahasa Indonesia, answer in clear, professional Bahasa Indonesia. If in English, answer in English.
-
 CORE INSTRUCTIONS:
 1. Every metric, percentage, hectare, and site recommendation MUST originate directly from the verified tool context provided below.
 2. NEVER hallucinate numbers or recommend clearing standing mangroves.
@@ -65,10 +68,8 @@ CORE INSTRUCTIONS:
 
 const SYSTEM_PROMPT_UMKM = `
 You are the SEMAI Business Assistant (Asisten Usaha), a friendly, encouraging mentor helping coastal residents and small business owners in Teluk Jor, East Lombok start and run sustainable local enterprises.
-
 LANGUAGE RULE:
 - Detect the user's language. If the user asks in Bahasa Indonesia, respond in simple, warm, practical Bahasa Indonesia. If in English, respond in English.
-
 COMMUNICATION RULES:
 1. Keep sentences straightforward, warm, and actionable without complex academic jargon.
 2. For "what business suits here", recommend 3 viable businesses for their location. For each, give:
@@ -82,7 +83,6 @@ COMMUNICATION RULES:
 function runRelevantTool(prompt: string) {
   const p = prompt.toLowerCase();
 
-  // What-if / Impact Simulation
   if (p.includes('convert') || p.includes('tambak') || p.includes('harm') || p.includes('impact') || p.includes('dampak') || p.includes('konversi')) {
     const targetNode = (p.includes('tambak') || p.includes('pond')) ? 'R_tambak' : 'R_mangrove';
     const change = (p.includes('tambak') || p.includes('naik')) ? 'naik' : 'hilang';
@@ -94,7 +94,6 @@ function runRelevantTool(prompt: string) {
     };
   }
 
-  // Village Baseline Summary
   if (p.includes('pemongkong') || p.includes('jerowaru') || p.includes('pare mas') || p.includes('village') || p.includes('desa') || p.includes('ringkas')) {
     const desa = p.includes('pemongkong') ? 'Pemongkong' : p.includes('pare') ? 'Pare Mas' : 'Jerowaru';
     const res = getAreaProfile(desa, gridCache?.features || [], umkmCache || []);
@@ -105,7 +104,6 @@ function runRelevantTool(prompt: string) {
     };
   }
 
-  // Site Recommendation (Default)
   let productId = 'madu_mangrove';
   if (p.includes('coffee') || p.includes('kopi')) productId = 'kopi_mangrove';
   if (p.includes('seaweed') || p.includes('gracilaria') || p.includes('agar') || p.includes('rumput')) productId = 'gracilaria_kering';
@@ -211,14 +209,19 @@ app.post('/api/alert', async (req, res) => {
   }
 });
 
-// 4. Production Static File Serving (Placed strictly at the very bottom!)
+// 4. Production Static Frontend
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const distPath = path.resolve(__dirname, '../dist');
 
 app.use(express.static(distPath));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
+});
 
-app.listen(PORT, async () => {
-  console.log(`SEMAI Backend running on http://localhost:${PORT}`);
-  await initializeServerCache();
+// Start listening immediately on 0.0.0.0
+app.listen(PORT, HOST, () => {
+  console.log(`SEMAI Backend listening on http://${HOST}:${PORT}`);
+  // Load cache in background so health check responds instantly!
+  initializeServerCache();
 });
