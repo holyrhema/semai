@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { APIProvider, Map, useMap } from '@vis.gl/react-google-maps';
-import { Layers, Calendar, AlertTriangle, TrendingUp, Navigation, Store, X, Briefcase, Sparkles, Compass } from 'lucide-react';
+import { Layers, Calendar, AlertTriangle, TrendingUp, Navigation, Store, X, Briefcase, Sparkles, Compass, Radio } from 'lucide-react';
 import { scoreCell, ProductConfig } from '../../shared/engine/score';
 
 interface MapTabProps {
@@ -29,6 +29,7 @@ function MapEngine({
   showRoads,
   showGathering,
   showUMKM,
+  alertThreatCell,
   onCellClick,
   onUMKMClick,
   onHubClick
@@ -37,8 +38,40 @@ function MapEngine({
   const gridLayerRef = useRef<google.maps.Data | null>(null);
   const roadsLayerRef = useRef<google.maps.Data | null>(null);
   const pointsLayerRef = useRef<google.maps.Data | null>(null);
+  const threatMarkerRef = useRef<google.maps.Marker | null>(null);
 
-  // 1. Grid Layer Init
+  // 1. Pan to Alert Cell if Triggered
+  useEffect(() => {
+    if (!map || !alertThreatCell) return;
+
+    map.panTo({ lat: alertThreatCell.lat, lng: alertThreatCell.lng });
+    map.setZoom(15);
+
+    if (threatMarkerRef.current) threatMarkerRef.current.setMap(null);
+
+    const marker = new google.maps.Marker({
+      position: { lat: alertThreatCell.lat, lng: alertThreatCell.lng },
+      map: map,
+      title: "Active Threat Detected!",
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 14,
+        fillColor: '#DC2626',
+        fillOpacity: 0.8,
+        strokeColor: '#FFFFFF',
+        strokeWeight: 3
+      },
+      animation: google.maps.Animation.BOUNCE
+    });
+
+    threatMarkerRef.current = marker;
+
+    return () => {
+      if (threatMarkerRef.current) threatMarkerRef.current.setMap(null);
+    };
+  }, [map, alertThreatCell]);
+
+  // 2. Grid Layer Init
   useEffect(() => {
     if (!map || !gridData) return;
     if (gridLayerRef.current) gridLayerRef.current.setMap(null);
@@ -56,7 +89,7 @@ function MapEngine({
     return () => { layer.setMap(null); };
   }, [map, gridData]);
 
-  // 2. Dynamic Styling (Strict Coastal Guardrails)
+  // 3. Dynamic Styling (Calibrated Quadrants & Coastal Guardrails)
   useEffect(() => {
     const layer = gridLayerRef.current;
     if (!layer) return;
@@ -83,7 +116,7 @@ function MapEngine({
         };
       }
 
-      // MODE B: STRATEGIC QUADRANTS
+      // MODE B: STRATEGIC QUADRANTS (Calibrated Thresholds)
       if (activeMode === 'quadrant') {
         let oppScore = 0.0;
         if (selectedProduct) {
@@ -92,36 +125,38 @@ function MapEngine({
           oppScore = Math.max(p.mangrove_frac_2024 || 0, p.pond_frac_2024 || 0);
         }
 
-        const risk = p.p_loss_500m || p.p_loss || 0.2;
-        const isHighOpp = oppScore >= 0.5;
-        const isHighRisk = risk >= 0.5;
+        const risk = p.p_loss_500m || p.p_loss || 0.3;
+        
+        // CALIBRATED THRESHOLDS: Opp >= 40%, Risk >= 45%
+        const isHighOpp = oppScore >= 0.40;
+        const isHighRisk = risk >= 0.45;
 
         let quadLabel = 'monitor';
         let quadColor = '#94A3B8';
 
         if (isHighOpp && isHighRisk) {
           quadLabel = 'accompany';
-          quadColor = '#C2410C';
+          quadColor = '#C2410C'; // Warm Terracotta Red: Accompany Business First
         } else if (isHighOpp && !isHighRisk) {
           quadLabel = 'expand';
-          quadColor = '#306D29';
+          quadColor = '#306D29'; // Forest Green: Expand & Connect
         } else if (!isHighOpp && isHighRisk) {
           quadLabel = 'patrol';
-          quadColor = '#D97706';
+          quadColor = '#D97706'; // Amber: Patrol & Restore
         }
 
         if (selectedQuadrant && selectedQuadrant !== 'all' && selectedQuadrant !== quadLabel) {
           return { fillOpacity: 0, strokeWeight: 0, clickable: false };
         }
 
-        // Only show quadrant colors where there is actual coastal activity
-        if ((p.mangrove_frac_2024 || 0) < 0.1 && (p.pond_frac_2024 || 0) < 0.1) {
+        // Only display cells relevant to coastal intervention
+        if ((p.dist_coast_m || 999) > 350 && (p.pond_frac_2024 || 0) < 0.1) {
           return { fillOpacity: 0, strokeWeight: 0, clickable: false };
         }
 
         return {
           fillColor: quadColor,
-          fillOpacity: 0.8,
+          fillOpacity: 0.85,
           strokeColor: '#FBF5DD',
           strokeWeight: 0.8,
           clickable: true
@@ -135,9 +170,7 @@ function MapEngine({
       const p17 = p.pond_frac_2017 || 0;
       const p24 = p.pond_frac_2024 || 0;
 
-      // CONVERSION PRESSURE: STRICT GUARDRAIL!
-      // Must be a coastal cell with standing mangrove (dist_coast <= 200m and mangrove > 0.1)
-      if (showRisk && (m24 > 0.1 || m17 > 0.1) && (p.dist_coast_m || 999) <= 200) {
+      if (showRisk && (m24 > 0.1 || m17 > 0.1) && (p.dist_coast_m || 999) <= 220) {
         return {
           fillColor: '#DC2626',
           fillOpacity: 0.85,
@@ -147,7 +180,6 @@ function MapEngine({
         };
       }
 
-      // NATURAL GROWTH ZONE: Coastal intertidal fringe only
       if (showGain && (p.p_gain || 0) > 0.3 && (p.dist_coast_m || 999) <= 150) {
         return {
           fillColor: '#306D29',
@@ -185,7 +217,7 @@ function MapEngine({
     });
   }, [activeMode, selectedProduct, selectedQuadrant, selectedYear, showMangrove, showPond, showRisk, showGain]);
 
-  // 3. Roads
+  // 4. Roads Layer
   useEffect(() => {
     if (!map || !roadsData) return;
     if (roadsLayerRef.current) roadsLayerRef.current.setMap(null);
@@ -203,23 +235,15 @@ function MapEngine({
     return () => { layer.setMap(null); };
   }, [map, roadsData, showRoads]);
 
-  // 4. Points Layer (Both Gathering Hubs & UMKM)
+  // 5. Points Layer (All 18 Gathering Hubs & UMKM)
   useEffect(() => {
     if (!map) return;
     if (pointsLayerRef.current) pointsLayerRef.current.setMap(null);
 
     const pointFeatures: any[] = [];
 
-    // Add Village Gathering Hubs (Mosques & Markets)
-    if (showGathering) {
-      const hubsList = gatheringData?.features || [
-        { type: "Feature", geometry: { type: "Point", coordinates: [116.4883, -8.8475] }, properties: { name: "Bale Mangrove Visitor Center", cat: "ecotourism_center", weight: 1.5 } },
-        { type: "Feature", geometry: { type: "Point", coordinates: [116.4678, -8.8350] }, properties: { name: "Pasar Umum Jerowaru", cat: "market", weight: 1.8 } },
-        { type: "Feature", geometry: { type: "Point", coordinates: [116.4820, -8.8820] }, properties: { name: "Kantor & Pasar Pemongkong", cat: "community_center", weight: 1.4 } },
-        { type: "Feature", geometry: { type: "Point", coordinates: [116.4950, -8.8350] }, properties: { name: "Masjid Jami Pare Mas", cat: "mosque", weight: 1.5 } }
-      ];
-
-      hubsList.forEach((f: any) => {
+    if (showGathering && gatheringData?.features) {
+      gatheringData.features.forEach((f: any) => {
         pointFeatures.push({
           type: 'Feature',
           geometry: f.geometry,
@@ -228,7 +252,6 @@ function MapEngine({
       });
     }
 
-    // Add UMKM Enterprises
     if (showUMKM && umkmData) {
       umkmData.forEach((u: any) => {
         pointFeatures.push({
@@ -248,8 +271,8 @@ function MapEngine({
         return {
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
-            scale: 7,
-            fillColor: '#0284C7', // Bright Sky Blue
+            scale: 6.5,
+            fillColor: '#0284C7', // Sky Blue with White Trim
             fillOpacity: 1.0,
             strokeColor: '#FFFFFF',
             strokeWeight: 2.5
@@ -264,7 +287,7 @@ function MapEngine({
             scale: 5,
             fillColor: '#306D29', // Forest Green
             fillOpacity: 1.0,
-            strokeColor: '#FFFFFF',
+            strokeColor: '#FBF5DD',
             strokeWeight: 1.5
           },
           title: feat.getProperty('name')
@@ -317,6 +340,9 @@ export const MapTab: React.FC<MapTabProps> = ({
   const [selectedUMKM, setSelectedUMKM] = useState<any | null>(null);
   const [selectedHub, setSelectedHub] = useState<any | null>(null);
 
+  // Real-time Threat Alert Banner & Trigger State
+  const [activeAlert, setActiveAlert] = useState<any | null>(null);
+
   const activeProduct: ProductConfig | null = useMemo(() => {
     const pack = packs[selectedPackId];
     if (!pack) return null;
@@ -334,6 +360,25 @@ export const MapTab: React.FC<MapTabProps> = ({
       .sort((a: any, b: any) => (b.scoreRes.score || 0) - (a.scoreRes.score || 0))
       .slice(0, 5);
   }, [gridData, activeProduct, umkmData]);
+
+  const handleSimulateAlert = async () => {
+    try {
+      const r = await fetch('/api/alert', { method: 'POST' });
+      const d = await r.json();
+      if (d.alert) {
+        setActiveAlert({
+          cell_id: d.alert.cell_id,
+          village: d.alert.village,
+          loss_area: d.alert.loss_area_ha,
+          risk: d.alert.conversion_risk,
+          lat: -8.8475,
+          lng: 116.4883
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <div className="relative w-full h-full bg-[#FBF5DD]">
@@ -361,6 +406,7 @@ export const MapTab: React.FC<MapTabProps> = ({
             showRoads={showRoads}
             showGathering={showGathering}
             showUMKM={showUMKM}
+            alertThreatCell={activeAlert}
             onCellClick={(props: any) => {
               setSelectedUMKM(null);
               setSelectedHub(null);
@@ -379,6 +425,25 @@ export const MapTab: React.FC<MapTabProps> = ({
           />
         </Map>
       </APIProvider>
+
+      {/* TOP REAL-TIME ALERT TOAST BANNER */}
+      {activeAlert && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-[#DC2626] text-white px-5 py-3 rounded-2xl shadow-2xl border-2 border-white flex items-center space-x-3.5 animate-bounce">
+          <Radio className="w-5 h-5 text-white animate-pulse" />
+          <div className="text-xs">
+            <span className="font-extrabold uppercase tracking-wide block">🚨 Pokmaswas Threat Alert Dispatched (Pub/Sub)</span>
+            <span className="font-medium text-white/90">
+              Loss detected at Cell {activeAlert.cell_id} ({activeAlert.village}) • Threat Level: {activeAlert.risk} • Area: ~{activeAlert.loss_area} ha
+            </span>
+          </div>
+          <button
+            onClick={() => setActiveAlert(null)}
+            className="p-1 hover:bg-red-800 rounded-lg text-white/80 hover:text-white"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* TOP NAVIGATION / MODE SWITCHER */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-[#E7E1B1] border-2 border-[#D5CC94] rounded-2xl p-1.5 shadow-2xl flex space-x-1.5">
@@ -409,32 +474,27 @@ export const MapTab: React.FC<MapTabProps> = ({
       {/* LEFT CONTROL PANEL */}
       <div className="absolute top-20 left-4 z-30 w-88 bg-[#E7E1B1] border-2 border-[#D5CC94] rounded-3xl shadow-2xl p-4 text-[#0D530E] space-y-4 max-h-[82vh] overflow-y-auto">
         
+        {/* SIMULATE ALERT BUTTON */}
+        <div className="bg-[#FBF5DD] border-2 border-red-500/50 p-3.5 rounded-2xl space-y-2 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black text-red-700 uppercase tracking-wider flex items-center">
+              <AlertTriangle className="w-4 h-4 mr-1 text-red-600" /> Community Threat Alert
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-mono font-extrabold border border-red-300">
+              Pub/Sub
+            </span>
+          </div>
+          <button
+            onClick={handleSimulateAlert}
+            className="w-full bg-[#DC2626] hover:bg-red-700 text-[#FBF5DD] font-extrabold py-2 px-3 rounded-xl text-xs transition-all shadow flex items-center justify-center space-x-1.5"
+          >
+            <span>Simulate Threat Detection</span>
+          </button>
+        </div>
+
         {/* MODE 1: BASELINE */}
         {activeMode === 'baseline' && (
           <div className="space-y-4">
-            <div className="bg-red-100 border-2 border-red-500/50 p-3 rounded-2xl space-y-2 mb-3 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black text-red-800 uppercase tracking-wider flex items-center">
-                  <AlertTriangle className="w-4 h-4 mr-1 text-red-600" /> Community Threat Alert
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-200 text-red-800 font-mono font-bold">Pub/Sub</span>
-              </div>
-              <button
-                onClick={async () => {
-                  try {
-                    const r = await fetch("/api/alert", { method: "POST" });
-                    const d = await r.json();
-                    if (d.alert) {
-                      alert(`🚨 SEMAI THREAT ALERT (PUB/SUB REPLAY)\n\nEvent: Mangrove Conversion Detected\nLocation: Cell ${d.alert.cell_id} (${d.alert.village})\nLoss Footprint: ~${d.alert.loss_area_ha} ha\nRisk Level: ${d.alert.conversion_risk}\nStatus: Dispatched to Pokmaswas Patrol Group via Pub/Sub.`);
-                    }
-                  } catch (e) { console.error(e); }
-                }}
-                className="w-full bg-red-600 hover:bg-red-700 text-[#FBF5DD] font-black py-2 px-3 rounded-xl text-xs transition-all shadow flex items-center justify-center space-x-1.5"
-              >
-                <span>Simulate Threat Detection</span>
-              </button>
-            </div>
-
             <div className="border-b border-[#D5CC94] pb-2">
               <span className="font-extrabold text-sm tracking-wide text-[#0D530E]">Satellite Observation</span>
             </div>
@@ -516,29 +576,6 @@ export const MapTab: React.FC<MapTabProps> = ({
         {/* MODE 2: OPPORTUNITY */}
         {activeMode === 'opportunity' && (
           <div className="space-y-4">
-            <div className="bg-red-100 border-2 border-red-500/50 p-3 rounded-2xl space-y-2 mb-3 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black text-red-800 uppercase tracking-wider flex items-center">
-                  <AlertTriangle className="w-4 h-4 mr-1 text-red-600" /> Community Threat Alert
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-200 text-red-800 font-mono font-bold">Pub/Sub</span>
-              </div>
-              <button
-                onClick={async () => {
-                  try {
-                    const r = await fetch("/api/alert", { method: "POST" });
-                    const d = await r.json();
-                    if (d.alert) {
-                      alert(`🚨 SEMAI THREAT ALERT (PUB/SUB REPLAY)\n\nEvent: Mangrove Conversion Detected\nLocation: Cell ${d.alert.cell_id} (${d.alert.village})\nLoss Footprint: ~${d.alert.loss_area_ha} ha\nRisk Level: ${d.alert.conversion_risk}\nStatus: Dispatched to Pokmaswas Patrol Group via Pub/Sub.`);
-                    }
-                  } catch (e) { console.error(e); }
-                }}
-                className="w-full bg-red-600 hover:bg-red-700 text-[#FBF5DD] font-black py-2 px-3 rounded-xl text-xs transition-all shadow flex items-center justify-center space-x-1.5"
-              >
-                <span>Simulate Threat Detection</span>
-              </button>
-            </div>
-
             <div className="border-b border-[#D5CC94] pb-2">
               <span className="font-extrabold text-sm tracking-wide text-[#0D530E]">Product Suitability Model</span>
             </div>
@@ -622,32 +659,9 @@ export const MapTab: React.FC<MapTabProps> = ({
         {/* MODE 3: QUADRANT */}
         {activeMode === 'quadrant' && (
           <div className="space-y-4">
-            <div className="bg-red-100 border-2 border-red-500/50 p-3 rounded-2xl space-y-2 mb-3 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black text-red-800 uppercase tracking-wider flex items-center">
-                  <AlertTriangle className="w-4 h-4 mr-1 text-red-600" /> Community Threat Alert
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-200 text-red-800 font-mono font-bold">Pub/Sub</span>
-              </div>
-              <button
-                onClick={async () => {
-                  try {
-                    const r = await fetch("/api/alert", { method: "POST" });
-                    const d = await r.json();
-                    if (d.alert) {
-                      alert(`🚨 SEMAI THREAT ALERT (PUB/SUB REPLAY)\n\nEvent: Mangrove Conversion Detected\nLocation: Cell ${d.alert.cell_id} (${d.alert.village})\nLoss Footprint: ~${d.alert.loss_area_ha} ha\nRisk Level: ${d.alert.conversion_risk}\nStatus: Dispatched to Pokmaswas Patrol Group via Pub/Sub.`);
-                    }
-                  } catch (e) { console.error(e); }
-                }}
-                className="w-full bg-red-600 hover:bg-red-700 text-[#FBF5DD] font-black py-2 px-3 rounded-xl text-xs transition-all shadow flex items-center justify-center space-x-1.5"
-              >
-                <span>Simulate Threat Detection</span>
-              </button>
-            </div>
-
             <div className="border-b border-[#D5CC94] pb-2">
               <span className="font-extrabold text-sm tracking-wide text-[#0D530E]">Decision Matrix</span>
-              <p className="text-[11px] text-[#306D29] mt-0.5">Opportunity (≥50%) vs. Conversion Risk (≥50%)</p>
+              <p className="text-[11px] text-[#306D29] mt-0.5">Opportunity (≥40%) vs. Conversion Risk (≥45%)</p>
             </div>
 
             <div className="space-y-2 text-xs">
@@ -686,7 +700,7 @@ export const MapTab: React.FC<MapTabProps> = ({
             <input type="checkbox" checked={showUMKM} onChange={(e) => setShowUMKM(e.target.checked)} className="accent-[#306D29] rounded" />
           </label>
           <label className="flex items-center justify-between text-[#0D530E] font-medium cursor-pointer">
-            <span className="flex items-center"><Store className="w-4 h-4 mr-1.5 text-[#0284C7]" /> Village Hubs (Mosques & Markets)</span>
+            <span className="flex items-center"><Store className="w-4 h-4 mr-1.5 text-[#0284C7]" /> Village Hubs (18 Anchors)</span>
             <input type="checkbox" checked={showGathering} onChange={(e) => setShowGathering(e.target.checked)} className="accent-[#0284C7] rounded" />
           </label>
           <label className="flex items-center justify-between text-[#0D530E] font-medium cursor-pointer">
