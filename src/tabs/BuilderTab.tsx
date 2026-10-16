@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
-import { Send, Bot, Sparkles, CheckCircle2, Loader2, Compass } from 'lucide-react';
+import { Send, Bot, Sparkles, CheckCircle2, Loader2, Compass, Network, X } from 'lucide-react';
 import { BadgeSimulasi } from '../components/BadgeSimulasi';
 
 export const BuilderTab: React.FC = () => {
@@ -14,6 +14,8 @@ export const BuilderTab: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [graphData, setGraphData] = useState<{ nodes: any[]; links: any[] }>({ nodes: [], links: [] });
   const [highlightedNodes, setHighlightedNodes] = useState<string[]>([]);
+  const [mobileGraphOpen, setMobileGraphOpen] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<any>(null);
 
@@ -102,16 +104,19 @@ export const BuilderTab: React.FC = () => {
   ];
 
   return (
-    <div className="flex h-full w-full bg-[#FBF5DD] overflow-hidden">
-      {/* LEFT: CHAT PANEL (45%) */}
-      <div className="w-[45%] h-full flex flex-col border-r-2 border-[#D5CC94] bg-[#FBF5DD]">
-        <div className="p-4 border-b border-[#D5CC94] bg-[#E7E1B1] flex items-center justify-between">
+    <div className="flex h-full w-full bg-[#FBF5DD] overflow-hidden relative">
+      
+      {/* 1. CHAT PANEL (100% Full Width on Mobile | 45% on Desktop) */}
+      <div className="w-full md:w-[45%] h-full flex flex-col border-r-0 md:border-r-2 border-[#D5CC94] bg-[#FBF5DD]">
+        
+        {/* Chat Header */}
+        <div className="p-3 sm:p-4 border-b border-[#D5CC94] bg-[#E7E1B1] flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-[#306D29] text-[#FBF5DD] rounded-xl shadow-sm">
+            <div className="p-2 sm:p-2.5 bg-[#306D29] text-[#FBF5DD] rounded-xl shadow-sm">
               <Bot className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-sm font-black text-[#0D530E] flex items-center space-x-2">
+              <h2 className="text-sm sm:text-base font-black text-[#0D530E] flex items-center space-x-2">
                 <span>Ask SEMAI</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FBF5DD] text-[#306D29] border border-[#D5CC94] font-mono">
                   Gemini 3.8 Flash
@@ -120,15 +125,23 @@ export const BuilderTab: React.FC = () => {
               <p className="text-xs text-[#306D29] font-medium">Spatial economic advisor & scenario simulator</p>
             </div>
           </div>
-          <BadgeSimulasi />
+
+          {/* Mobile Button to Open Graph Modal */}
+          <button
+            onClick={() => setMobileGraphOpen(true)}
+            className="md:hidden flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-[#306D29] text-[#FBF5DD] text-xs font-bold shadow"
+          >
+            <Network className="w-4 h-4" />
+            <span>Graph</span>
+          </button>
         </div>
 
         {/* Message Thread */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
           {messages.map((m, idx) => (
             <div key={idx} className={`flex flex-col ${m.sender === 'user' ? 'items-end' : 'items-start'}`}>
               <div
-                className={`max-w-[88%] rounded-2xl px-4 py-3 text-xs leading-relaxed ${
+                className={`max-w-[92%] sm:max-w-[88%] rounded-2xl px-3.5 sm:px-4 py-2.5 sm:py-3 text-xs leading-relaxed ${
                   m.sender === 'user'
                     ? 'bg-[#306D29] text-[#FBF5DD] font-semibold rounded-br-sm shadow'
                     : 'bg-[#E7E1B1] text-[#0D530E] border border-[#D5CC94] rounded-bl-sm shadow-sm'
@@ -163,15 +176,15 @@ export const BuilderTab: React.FC = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Prompt Suggestions */}
-        <div className="p-3 bg-[#E7E1B1] border-t border-[#D5CC94] space-y-2">
-          <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#306D29] block">Suggested Inquiries:</span>
-          <div className="flex flex-col space-y-1.5">
+        {/* Suggested Inquiries */}
+        <div className="p-2.5 sm:p-3 bg-[#E7E1B1] border-t border-[#D5CC94] space-y-1.5">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#306D29] block">Suggested Inquiries:</span>
+          <div className="flex flex-col space-y-1">
             {sampleQuestions.map((q, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSend(q)}
-                className="text-left text-xs text-[#0D530E] hover:bg-[#FBF5DD] px-3 py-1.5 rounded-xl border border-[#D5CC94] transition-colors flex items-center justify-between"
+                className="text-left text-[11px] text-[#0D530E] hover:bg-[#FBF5DD] px-2.5 py-1 rounded-xl border border-[#D5CC94] transition-colors flex items-center justify-between"
               >
                 <span className="truncate mr-2 font-medium">• {q}</span>
                 <Sparkles className="w-3.5 h-3.5 text-[#306D29] shrink-0" />
@@ -188,7 +201,7 @@ export const BuilderTab: React.FC = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Ask about optimal enterprise locations or what-if impacts..."
-            className="flex-1 bg-[#FBF5DD] border border-[#D5CC94] rounded-xl px-4 py-2.5 text-xs text-[#0D530E] placeholder-[#306D29]/60 focus:outline-none focus:border-[#306D29]"
+            className="flex-1 bg-[#FBF5DD] border border-[#D5CC94] rounded-xl px-3.5 py-2 text-xs text-[#0D530E] placeholder-[#306D29]/60 focus:outline-none focus:border-[#306D29]"
           />
           <button
             onClick={() => handleSend()}
@@ -200,9 +213,13 @@ export const BuilderTab: React.FC = () => {
         </div>
       </div>
 
-      {/* RIGHT: FORCE-DIRECTED ECOSYSTEM GRAPH (55%) */}
-      <div className="w-[55%] h-full flex flex-col bg-[#FBF5DD] relative overflow-hidden">
-        <div className="p-4 border-b border-[#D5CC94] bg-[#E7E1B1] flex items-center justify-between z-10">
+      {/* 2. ECOSYSTEM NETWORK GRAPH (Hidden on Mobile by default, Opens in Drawer) */}
+      <div className={`
+        ${mobileGraphOpen ? 'fixed inset-0 z-50 flex flex-col' : 'hidden md:flex'}
+        w-full md:w-[55%] h-full bg-[#FBF5DD] relative overflow-hidden
+      `}>
+        {/* Graph Header */}
+        <div className="p-3 sm:p-4 border-b border-[#D5CC94] bg-[#E7E1B1] flex items-center justify-between z-10 shrink-0">
           <div>
             <h3 className="text-sm font-bold text-[#0D530E] flex items-center space-x-2">
               <Compass className="w-4 h-4 text-[#306D29]" />
@@ -211,21 +228,30 @@ export const BuilderTab: React.FC = () => {
             <p className="text-xs text-[#306D29]">Dependency model of resources, enterprises & markets</p>
           </div>
 
-          <div className="flex items-center space-x-3 text-xs font-semibold">
-            <span className="flex items-center text-[#0D530E]"><span className="w-3 h-3 rounded-full bg-[#0D530E] mr-1.5"></span> Resource</span>
-            <span className="flex items-center text-[#306D29]"><span className="w-3 h-3 rounded-full bg-[#306D29] mr-1.5"></span> Enterprise</span>
-            <span className="flex items-center text-[#D97706]"><span className="w-3 h-3 rounded-full bg-[#D97706] mr-1.5"></span> Market</span>
-            <span className="flex items-center text-purple-700"><span className="w-3 h-3 rounded-full bg-purple-600 mr-1.5"></span> Institution</span>
+          <div className="flex items-center space-x-2">
+            <div className="hidden sm:flex items-center space-x-2 text-xs font-semibold">
+              <span className="flex items-center text-[#0D530E]"><span className="w-2.5 h-2.5 rounded-full bg-[#0D530E] mr-1"></span> Resource</span>
+              <span className="flex items-center text-[#306D29]"><span className="w-2.5 h-2.5 rounded-full bg-[#306D29] mr-1"></span> Enterprise</span>
+              <span className="flex items-center text-[#D97706]"><span className="w-2.5 h-2.5 rounded-full bg-[#D97706] mr-1"></span> Market</span>
+            </div>
+            {/* Close button on mobile */}
+            <button
+              onClick={() => setMobileGraphOpen(false)}
+              className="md:hidden p-1.5 rounded-full bg-[#FBF5DD] border border-[#D5CC94] text-[#0D530E]"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
+        {/* Graph Canvas */}
         <div className="flex-1 relative flex items-center justify-center">
           {graphData.nodes.length > 0 && (
             <ForceGraph2D
               ref={graphRef}
               graphData={graphData}
               cooldownTicks={100}
-              onEngineStop={() => graphRef.current?.zoomToFit(400, 30)}
+              onEngineStop={() => graphRef.current?.zoomToFit(400, 20)}
               nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
                 const isHit = highlightedNodes.includes(node.id);
                 const label = node.name;
@@ -253,16 +279,16 @@ export const BuilderTab: React.FC = () => {
           )}
 
           {highlightedNodes.length > 0 && (
-            <div className="absolute bottom-4 right-4 bg-[#E7E1B1] border-2 border-red-500/60 p-4 rounded-2xl max-w-sm text-xs text-[#0D530E] space-y-1.5 shadow-2xl z-20">
+            <div className="absolute bottom-4 right-4 bg-[#E7E1B1] border-2 border-red-500/60 p-3 rounded-2xl max-w-xs text-xs text-[#0D530E] space-y-1 shadow-2xl z-20">
               <span className="font-extrabold text-red-700 block text-xs uppercase tracking-wider">
-                Simulated Impact Cascade:
+                Simulated Impact:
               </span>
-              <p className="text-xs text-[#0D530E] leading-relaxed">
+              <p className="text-xs text-[#0D530E]">
                 {highlightedNodes.length} connected sectors affected. Red nodes highlight downstream economic or ecological damage.
               </p>
               <button
                 onClick={() => setHighlightedNodes([])}
-                className="text-xs text-red-700 font-bold underline hover:text-red-900 pt-1 block"
+                className="text-xs text-red-700 font-bold underline pt-1 block"
               >
                 Clear Highlights
               </button>

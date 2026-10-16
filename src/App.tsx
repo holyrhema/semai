@@ -97,20 +97,17 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#FBF5DD]">
-      {/* Responsive Top Navbar */}
-      <header className="bg-[#E7E1B1] border-b-2 border-[#D5CC94] px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between z-30 shadow-sm shrink-0">
-        <div className="flex items-center space-x-2 sm:space-x-3.5">
-          <span className="text-xl sm:text-2xl font-black tracking-tight text-[#0D530E]">SEMAI</span>
-          <span className="text-xs text-[#306D29] font-medium border-l border-[#D5CC94] pl-3 hidden lg:inline">
+      {/* Generous 50% Taller Navbar with Notch / Status Bar Protection */}
+      <header className="bg-[#E7E1B1] border-b-2 border-[#D5CC94] px-3 sm:px-6 pt-3 sm:pt-3 pb-3 sm:pb-3 flex items-center justify-between z-40 shadow-sm shrink-0 min-h-[64px] sm:min-h-[68px]">
+        <div className="flex items-center space-x-2">
+          <span className="text-2xl sm:text-3xl font-black tracking-tight text-[#0D530E]">SEMAI</span>
+          <span className="text-xs text-[#306D29] font-bold border-l border-[#D5CC94] pl-2 hidden lg:inline">
             Teluk Jor, East Lombok
           </span>
-          <div className="hidden sm:block">
-            <BadgeSimulasi />
-          </div>
         </div>
 
-        {/* Tab Selector with Mobile-Optimized Icon Padding */}
-        <nav className="flex space-x-1 sm:space-x-2">
+        {/* Big, Touch-Friendly Navigation Tabs */}
+        <nav className="flex space-x-1.5 sm:space-x-2">
           {[
             { id: 'peta', label: 'Map', icon: Map },
             { id: 'builder', label: 'Ask AI', icon: MessageSquare },
@@ -124,13 +121,13 @@ export default function App() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as Tab)}
-                className={`flex items-center space-x-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center space-x-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all ${
                   isActive
-                    ? 'bg-[#306D29] text-[#FBF5DD] shadow-md'
-                    : 'text-[#0D530E] hover:bg-[#F2E8BF]'
+                    ? 'bg-[#306D29] text-[#FBF5DD] shadow-lg scale-105'
+                    : 'text-[#0D530E] bg-[#FBF5DD]/50 hover:bg-[#F2E8BF]'
                 }`}
               >
-                <Icon className="w-4 h-4 shrink-0" />
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
                 <span className="hidden md:inline">{tab.label}</span>
               </button>
             );
