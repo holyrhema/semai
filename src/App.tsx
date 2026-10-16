@@ -34,7 +34,7 @@ export default function App() {
         const [gridRes, roadsRes, gatheringRes, demandRes, desaRes, umkmRes, packsIdxRes] = await Promise.all([
           fetch(`${baseUrl}grid.geojson`),
           fetch(`${baseUrl}roads.geojson`),
-          fetch(`${baseUrl}gathering.geojson`),
+          fetch(`${baseUrl}gathering.geojson?v=2`),
           fetch(`${baseUrl}demand_points.geojson`),
           fetch(`${baseUrl}desa.geojson`),
           fetch(`${baseUrl}umkm.json`),

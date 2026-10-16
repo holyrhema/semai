@@ -55,13 +55,12 @@ function MapEngine({
       title: "Active Threat Detected!",
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
-        scale: 14,
+        scale: 16,
         fillColor: '#DC2626',
-        fillOpacity: 0.8,
+        fillOpacity: 0.85,
         strokeColor: '#FFFFFF',
-        strokeWeight: 3
-      },
-      animation: google.maps.Animation.BOUNCE
+        strokeWeight: 3.5
+      }
     });
 
     threatMarkerRef.current = marker;
@@ -89,7 +88,7 @@ function MapEngine({
     return () => { layer.setMap(null); };
   }, [map, gridData]);
 
-  // 3. Dynamic Styling (Calibrated Quadrants & Coastal Guardrails)
+  // 3. Dynamic Styling
   useEffect(() => {
     const layer = gridLayerRef.current;
     if (!layer) return;
@@ -116,7 +115,7 @@ function MapEngine({
         };
       }
 
-      // MODE B: STRATEGIC QUADRANTS (Calibrated Thresholds)
+      // MODE B: STRATEGIC QUADRANTS
       if (activeMode === 'quadrant') {
         let oppScore = 0.0;
         if (selectedProduct) {
@@ -126,8 +125,6 @@ function MapEngine({
         }
 
         const risk = p.p_loss_500m || p.p_loss || 0.3;
-        
-        // CALIBRATED THRESHOLDS: Opp >= 40%, Risk >= 45%
         const isHighOpp = oppScore >= 0.40;
         const isHighRisk = risk >= 0.45;
 
@@ -136,20 +133,19 @@ function MapEngine({
 
         if (isHighOpp && isHighRisk) {
           quadLabel = 'accompany';
-          quadColor = '#C2410C'; // Warm Terracotta Red: Accompany Business First
+          quadColor = '#C2410C';
         } else if (isHighOpp && !isHighRisk) {
           quadLabel = 'expand';
-          quadColor = '#306D29'; // Forest Green: Expand & Connect
+          quadColor = '#306D29';
         } else if (!isHighOpp && isHighRisk) {
           quadLabel = 'patrol';
-          quadColor = '#D97706'; // Amber: Patrol & Restore
+          quadColor = '#D97706';
         }
 
         if (selectedQuadrant && selectedQuadrant !== 'all' && selectedQuadrant !== quadLabel) {
           return { fillOpacity: 0, strokeWeight: 0, clickable: false };
         }
 
-        // Only display cells relevant to coastal intervention
         if ((p.dist_coast_m || 999) > 350 && (p.pond_frac_2024 || 0) < 0.1) {
           return { fillOpacity: 0, strokeWeight: 0, clickable: false };
         }
@@ -217,7 +213,7 @@ function MapEngine({
     });
   }, [activeMode, selectedProduct, selectedQuadrant, selectedYear, showMangrove, showPond, showRisk, showGain]);
 
-  // 4. Roads Layer
+  // 4. Roads
   useEffect(() => {
     if (!map || !roadsData) return;
     if (roadsLayerRef.current) roadsLayerRef.current.setMap(null);
@@ -235,30 +231,43 @@ function MapEngine({
     return () => { layer.setMap(null); };
   }, [map, roadsData, showRoads]);
 
-  // 5. Points Layer (All 18 Gathering Hubs & UMKM)
+  // 5. Points Layer: STRICT LAND-ONLY FILTER!
   useEffect(() => {
     if (!map) return;
     if (pointsLayerRef.current) pointsLayerRef.current.setMap(null);
 
     const pointFeatures: any[] = [];
 
+    // Filter Village Gathering Hubs (Must be on land settlements, NEVER in bay waters)
     if (showGathering && gatheringData?.features) {
       gatheringData.features.forEach((f: any) => {
-        pointFeatures.push({
-          type: 'Feature',
-          geometry: f.geometry,
-          properties: { ...f.properties, _pointType: 'hub' }
-        });
+        const [lng, lat] = f.geometry.coordinates;
+
+        // Bounding Box to exclude open water in Teluk Jor / Teluk Jukung:
+        // Any point east of 116.492 that is south of -8.840 is open water!
+        const isWater = (lng > 116.491 && lat < -8.841) || (lng < 116.465 && lat < -8.840);
+        
+        if (!isWater) {
+          pointFeatures.push({
+            type: 'Feature',
+            geometry: f.geometry,
+            properties: { ...f.properties, _pointType: 'hub' }
+          });
+        }
       });
     }
 
+    // Filter UMKM Enterprises
     if (showUMKM && umkmData) {
       umkmData.forEach((u: any) => {
-        pointFeatures.push({
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [u.lng, u.lat] },
-          properties: { ...u, _pointType: 'umkm' }
-        });
+        const isWater = (u.lng > 116.491 && u.lat < -8.841) || (u.lng < 116.465 && u.lat < -8.840);
+        if (!isWater) {
+          pointFeatures.push({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [u.lng, u.lat] },
+            properties: { ...u, _pointType: 'umkm' }
+          });
+        }
       });
     }
 
@@ -272,7 +281,7 @@ function MapEngine({
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
             scale: 6.5,
-            fillColor: '#0284C7', // Sky Blue with White Trim
+            fillColor: '#0284C7', // Sky Blue
             fillOpacity: 1.0,
             strokeColor: '#FFFFFF',
             strokeWeight: 2.5
@@ -340,7 +349,6 @@ export const MapTab: React.FC<MapTabProps> = ({
   const [selectedUMKM, setSelectedUMKM] = useState<any | null>(null);
   const [selectedHub, setSelectedHub] = useState<any | null>(null);
 
-  // Real-time Threat Alert Banner & Trigger State
   const [activeAlert, setActiveAlert] = useState<any | null>(null);
 
   const activeProduct: ProductConfig | null = useMemo(() => {
@@ -366,13 +374,15 @@ export const MapTab: React.FC<MapTabProps> = ({
       const r = await fetch('/api/alert', { method: 'POST' });
       const d = await r.json();
       if (d.alert) {
+        const [lat, lng] = d.alert.coordinates;
         setActiveAlert({
           cell_id: d.alert.cell_id,
           village: d.alert.village,
           loss_area: d.alert.loss_area_ha,
           risk: d.alert.conversion_risk,
-          lat: -8.8475,
-          lng: 116.4883
+          unit: d.alert.assigned_unit,
+          lat: lat,
+          lng: lng
         });
       }
     } catch (e) {

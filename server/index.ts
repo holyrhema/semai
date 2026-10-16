@@ -11,7 +11,7 @@ const app = express();
 app.use(express.json());
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
-const HOST = '0.0.0.0'; // REQUIRED by Cloud Run
+const HOST = '0.0.0.0';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const DATA_BASE_URL = process.env.DATA_BASE_URL || 'https://storage.googleapis.com/semai-data-hrs/data/';
 
@@ -48,7 +48,6 @@ async function initializeServerCache() {
   }
 }
 
-// Health Check for Cloud Run
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
@@ -117,7 +116,7 @@ function runRelevantTool(prompt: string) {
   };
 }
 
-// 1. ROUTE: Builder AI Chat
+// 1. Builder Route
 app.post('/api/chat/builder', async (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: "Message is required" });
@@ -160,7 +159,7 @@ Provide a concise, professional assessment strictly using the data above. Match 
   }
 });
 
-// 2. ROUTE: UMKM Assistant Chat
+// 2. UMKM Route
 app.post('/api/chat/umkm', async (req, res) => {
   const { message, village } = req.body;
   if (!message) return res.status(400).json({ error: "Message is required" });
@@ -189,22 +188,107 @@ Give a friendly, step-by-step practical recommendation tailored to their locatio
   }
 });
 
-// 3. ROUTE: Alert Simulator
+// 3. DYNAMIC ALERT ENDPOINT (Generates a DIFFERENT cell & metric on every call!)
+const VULNERABLE_CELLS_POOL = [
+  // 1. Poton Bako North Shoreline (Right on Bale Mangrove estuary)
+  { id: 'c_03494', desa: 'Jerowaru (Bale Mangrove Estuary)', lat: -8.8475, lng: 116.4883, baseRisk: 82, patrol: 'Pokmaswas Bale Mangrove' },
+  
+  // 2. Teluk Jukung Coastal Lobster & Pond Margin (Pare Mas tidal channel)
+  { id: 'c_05708', desa: 'Pare Mas (Teluk Jukung Coastal Basin)', lat: -8.8420, lng: 116.5080, baseRisk: 88, patrol: 'Pos Patroli Pesisir Pare Mas' },
+  
+  // 3. Teluk Jor Inner Estuary (True intertidal water interface)
+  { id: 'c_04812', desa: 'Jerowaru (Kanal Tambak Pesisir)', lat: -8.8510, lng: 116.4920, baseRisk: 79, patrol: 'Patroli Cepat Teluk Jor' },
+  
+  // 4. Ekas Bay Brackish Water Canal (West shoreline ponds)
+  { id: 'c_06340', desa: 'Pemongkong (Laguna Ekas Pesisir)', lat: -8.8550, lng: 116.4640, baseRisk: 74, patrol: 'Unit Ronda Pesisir Ekas' },
+  
+  // 5. Pare Mas Mudflat Mangrove Fringe (East bay coast)
+  { id: 'c_05120', desa: 'Pare Mas (Sempadan Bakau Teluk)', lat: -8.8380, lng: 116.5030, baseRisk: 85, patrol: 'Pos Pengawas Teluk Jukung' },
+  
+  // 6. Teluk Jor South Salt-pan Shoreline (Right along southern lagoon)
+  { id: 'c_07890', desa: 'Pemongkong (Tambak Garam Pesisir)', lat: -8.8620, lng: 116.4860, baseRisk: 80, patrol: 'Kelompok Jaga Pesisir Selatan' }
+];
+
+let lastPickIndex = -1;
+
 app.post('/api/alert', async (req, res) => {
   try {
+    // Pick a DIFFERENT index from the previous click
+    let nextIndex = Math.floor(Math.random() * VULNERABLE_CELLS_POOL.length);
+    if (nextIndex === lastPickIndex) {
+      nextIndex = (nextIndex + 1) % VULNERABLE_CELLS_POOL.length;
+    }
+    lastPickIndex = nextIndex;
+
+    const cell = VULNERABLE_CELLS_POOL[nextIndex];
+
+    // Dynamic random loss (1.4 to 3.8 ha)
+    const simulatedLoss = Math.round((1.4 + Math.random() * 2.4) * 10) / 10;
+    const dynamicRisk = Math.min(94, cell.baseRisk + Math.floor(Math.random() * 9) - 4);
+
     const alertPayload = {
       event: "MANGROVE_LOSS_DETECTED",
       timestamp: new Date().toISOString(),
-      cell_id: "c_03494",
-      village: "Jerowaru",
-      loss_area_ha: 2.4,
-      conversion_risk: "78%",
-      action_required: "Pokmaswas coastal patrol dispatched via Pub/Sub"
+      cell_id: cell.id,
+      village: cell.desa,
+      loss_area_ha: simulatedLoss,
+      conversion_risk: `${dynamicRisk}%`,
+      coordinates: [cell.lat, cell.lng],
+      assigned_unit: cell.patrol,
+      action_required: `Dispatched ${cell.patrol} for perimeter verification`
     };
 
-    console.log("🚨 [SEMAI ALERT DISPATCHED]:", alertPayload);
+    console.log("🚨 [DYNAMIC ALERT TRIGGERED]:", alertPayload);
+
+    // Telegram Bot Dispatch
+    const tgToken = process.env.TELEGRAM_BOT_TOKEN;
+    const tgChatId = process.env.TELEGRAM_CHAT_ID;
+
+    if (tgToken && tgChatId) {
+      const formattedTime = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Makassar' });
+      const messageText = 
+`🚨 *SEMAI THREAT ALERT: SATELLITE ANOMALY DETECTED*
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+📍 *Location*: Desa ${alertPayload.village}
+🗺️ *Grid Cell*: \`${alertPayload.cell_id}\`
+🌐 *Coordinates*: \`${cell.lat.toFixed(4)}, ${cell.lng.toFixed(4)}\`
+📉 *Detected Canopy Loss*: *~${alertPayload.loss_area_ha} hectares*
+⚠️ *Conversion Threat*: *${alertPayload.conversion_risk}* (Critical)
+⏱️ *Timestamp*: ${formattedTime} WITA
+
+🚢 *Response Action Dispatched*:
+*${alertPayload.assigned_unit}* has been alerted via Google Cloud Pub/Sub. Immediate field inspection required.
+
+🔗 [View on SEMAI Live Map](https://semai-hackathon.web.app)
+_(Live event simulation replay: 100m satellite embedding)_`;
+
+      try {
+        const tgRes = await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: tgChatId,
+            text: messageText,
+            parse_mode: 'Markdown',
+            disable_web_page_preview: true
+          })
+        });
+        const tgData = await tgRes.json();
+        if (tgData.ok) {
+          console.log("✅ Dynamic Telegram alert dispatched to group!");
+        } else {
+          console.error("⚠️ Telegram API returned error:", tgData.description);
+        }
+      } catch (tgErr) {
+        console.error("⚠️ Failed to reach Telegram API:", tgErr);
+      }
+    } else {
+      console.log("ℹ️ Telegram credentials not set. Alert processed locally.");
+    }
+
     return res.status(200).json({ success: true, alert: alertPayload });
   } catch (err: any) {
+    console.error("Alert Error:", err);
     return res.status(500).json({ error: "Failed to dispatch alert" });
   }
 });
@@ -219,9 +303,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
-// Start listening immediately on 0.0.0.0
 app.listen(PORT, HOST, () => {
   console.log(`SEMAI Backend listening on http://${HOST}:${PORT}`);
-  // Load cache in background so health check responds instantly!
   initializeServerCache();
 });

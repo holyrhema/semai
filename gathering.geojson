@@ -1,1 +1,293 @@
-{"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [116.4840788, -8.7968332]}, "properties": {"name": "KUA Jerowaru", "cat": "town_hall", "weight": 1.4}}]}
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.4715,
+          -8.8355
+        ]
+      },
+      "properties": {
+        "name": "Masjid Besar Jami' Jerowaru",
+        "cat": "mosque",
+        "weight": 1.5,
+        "desa": "Jerowaru"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.4678,
+          -8.834
+        ]
+      },
+      "properties": {
+        "name": "Pasar Umum & Terminal Jerowaru",
+        "cat": "market",
+        "weight": 1.8,
+        "desa": "Jerowaru"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.4702,
+          -8.8368
+        ]
+      },
+      "properties": {
+        "name": "Kantor Camat & Balai Desa Jerowaru",
+        "cat": "local_government_office",
+        "weight": 1.4,
+        "desa": "Jerowaru"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.4685,
+          -8.835
+        ]
+      },
+      "properties": {
+        "name": "Puskesmas Jerowaru (Pusat Kesehatan)",
+        "cat": "health_center",
+        "weight": 1.4,
+        "desa": "Jerowaru"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.474,
+          -8.8385
+        ]
+      },
+      "properties": {
+        "name": "SMAN 1 Jerowaru",
+        "cat": "school",
+        "weight": 1.2,
+        "desa": "Jerowaru"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.4865,
+          -8.8455
+        ]
+      },
+      "properties": {
+        "name": "Pusat Informasi Ekowisata Bale Mangrove",
+        "cat": "community_center",
+        "weight": 1.6,
+        "desa": "Jerowaru"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.483,
+          -8.8315
+        ]
+      },
+      "properties": {
+        "name": "Masjid Nurul Huda Pare Mas",
+        "cat": "mosque",
+        "weight": 1.5,
+        "desa": "Pare Mas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.4815,
+          -8.8305
+        ]
+      },
+      "properties": {
+        "name": "Kantor Desa Pare Mas",
+        "cat": "local_government_office",
+        "weight": 1.3,
+        "desa": "Pare Mas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.489,
+          -8.836
+        ]
+      },
+      "properties": {
+        "name": "Pangkalan Pendaratan Ikan (Dermaga Pare Mas)",
+        "cat": "market",
+        "weight": 1.7,
+        "desa": "Pare Mas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.4855,
+          -8.8335
+        ]
+      },
+      "properties": {
+        "name": "Pos Ronda & Patroli Pokmaswas Pare Mas",
+        "cat": "community_center",
+        "weight": 1.4,
+        "desa": "Pare Mas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.48,
+          -8.8295
+        ]
+      },
+      "properties": {
+        "name": "SDN 1 Pare Mas",
+        "cat": "school",
+        "weight": 1.1,
+        "desa": "Pare Mas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.4915,
+          -8.841
+        ]
+      },
+      "properties": {
+        "name": "Pusat Koperasi Pembudidaya Teluk Jukung",
+        "cat": "market",
+        "weight": 1.5,
+        "desa": "Pare Mas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.477,
+          -8.878
+        ]
+      },
+      "properties": {
+        "name": "Masjid Jami' Nurul Islam Pemongkong",
+        "cat": "mosque",
+        "weight": 1.5,
+        "desa": "Pemongkong"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.476,
+          -8.877
+        ]
+      },
+      "properties": {
+        "name": "Pasar Tradisional Pemongkong",
+        "cat": "market",
+        "weight": 1.7,
+        "desa": "Pemongkong"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.478,
+          -8.879
+        ]
+      },
+      "properties": {
+        "name": "Kantor Desa Pemongkong",
+        "cat": "local_government_office",
+        "weight": 1.3,
+        "desa": "Pemongkong"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.4745,
+          -8.865
+        ]
+      },
+      "properties": {
+        "name": "Balai Pertemuan Petani Garam & Tambak",
+        "cat": "community_center",
+        "weight": 1.4,
+        "desa": "Pemongkong"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.473,
+          -8.862
+        ]
+      },
+      "properties": {
+        "name": "Koperasi Nelayan Bahari Pemongkong",
+        "cat": "market",
+        "weight": 1.3,
+        "desa": "Pemongkong"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.479,
+          -8.8805
+        ]
+      },
+      "properties": {
+        "name": "Pos Kesehatan Desa (Poskesdes) Pemongkong",
+        "cat": "health_center",
+        "weight": 1.2,
+        "desa": "Pemongkong"
+      }
+    }
+  ]
+}
