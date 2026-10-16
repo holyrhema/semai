@@ -56,9 +56,7 @@ export default function App() {
         const packs: Record<string, any> = {};
         for (const pId of packsIndex.active_packs || ['mangrove', 'seaweed']) {
           const res = await fetch(`${baseUrl}packs/${pId}.json`);
-          if (res.ok) {
-            packs[pId] = await res.json();
-          }
+          if (res.ok) packsCache[pId] = await res.json();
         }
 
         setDatasets({ grid, roads, gathering, demand, desa, umkm, packsIndex, packs });
@@ -76,9 +74,9 @@ export default function App() {
   if (loading) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#FBF5DD] text-[#0D530E]">
-        <Loader2 className="w-14 h-14 text-[#306D29] animate-spin mb-4" />
+        <Loader2 className="w-12 h-12 text-[#306D29] animate-spin mb-3" />
         <h1 className="text-2xl font-black tracking-wider text-[#0D530E]">SEMAI</h1>
-        <p className="text-[#306D29] text-base mt-1 font-medium">Calibrating spatial models & natural assets...</p>
+        <p className="text-[#306D29] text-xs font-semibold">Calibrating spatial intelligence...</p>
       </div>
     );
   }
@@ -87,9 +85,9 @@ export default function App() {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#FBF5DD] text-[#0D530E] p-6">
         <div className="bg-[#E7E1B1] border-2 border-red-500/40 text-red-800 p-6 rounded-2xl max-w-md text-center shadow-lg">
-          <h2 className="font-bold text-lg mb-2">Data Load Failed</h2>
-          <p className="text-sm mb-4">{errorMsg}</p>
-          <button onClick={() => window.location.reload()} className="px-5 py-2.5 bg-[#306D29] hover:bg-[#0D530E] text-[#FBF5DD] rounded-xl text-sm font-semibold transition-all shadow">
+          <h2 className="font-bold text-base mb-2">Data Load Failed</h2>
+          <p className="text-xs mb-4">{errorMsg}</p>
+          <button onClick={() => window.location.reload()} className="px-4 py-2 bg-[#306D29] text-[#FBF5DD] rounded-xl text-xs font-semibold shadow">
             Reload App
           </button>
         </div>
@@ -99,24 +97,26 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#FBF5DD]">
-      {/* Top Navbar */}
-      <header className="bg-[#E7E1B1] border-b-2 border-[#D5CC94] px-6 py-3 flex items-center justify-between z-20 shadow-sm">
-        <div className="flex items-center space-x-3.5">
-          <span className="text-2xl font-black tracking-tight text-[#0D530E]">SEMAI</span>
-          <span className="text-xs text-[#306D29] font-medium border-l border-[#D5CC94] pl-3.5 hidden sm:inline">
+      {/* Responsive Top Navbar */}
+      <header className="bg-[#E7E1B1] border-b-2 border-[#D5CC94] px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between z-30 shadow-sm shrink-0">
+        <div className="flex items-center space-x-2 sm:space-x-3.5">
+          <span className="text-xl sm:text-2xl font-black tracking-tight text-[#0D530E]">SEMAI</span>
+          <span className="text-xs text-[#306D29] font-medium border-l border-[#D5CC94] pl-3 hidden lg:inline">
             Teluk Jor, East Lombok
           </span>
-          <BadgeSimulasi />
+          <div className="hidden sm:block">
+            <BadgeSimulasi />
+          </div>
         </div>
 
-        {/* Tab Selector */}
+        {/* Tab Selector with Mobile-Optimized Icon Padding */}
         <nav className="flex space-x-1 sm:space-x-2">
           {[
-            { id: 'peta', label: 'Map Explorer', icon: Map },
-            { id: 'builder', label: 'Ask SEMAI', icon: MessageSquare },
-            { id: 'umkm', label: 'Business Assistant', icon: Briefcase },
+            { id: 'peta', label: 'Map', icon: Map },
+            { id: 'builder', label: 'Ask AI', icon: MessageSquare },
+            { id: 'umkm', label: 'Assistant', icon: Briefcase },
             { id: 'kelas', label: 'Academy', icon: GraduationCap },
-            { id: 'data', label: 'Data & Integrity', icon: Info },
+            { id: 'data', label: 'Data', icon: Info },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -124,13 +124,13 @@ export default function App() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as Tab)}
-                className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center space-x-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all ${
                   isActive
                     ? 'bg-[#306D29] text-[#FBF5DD] shadow-md'
                     : 'text-[#0D530E] hover:bg-[#F2E8BF]'
                 }`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-4 h-4 shrink-0" />
                 <span className="hidden md:inline">{tab.label}</span>
               </button>
             );

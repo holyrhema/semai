@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { APIProvider, Map, useMap } from '@vis.gl/react-google-maps';
-import { Layers, Calendar, AlertTriangle, TrendingUp, Navigation, Store, X, Briefcase, Sparkles, Compass, Radio } from 'lucide-react';
+import { Layers, Calendar, AlertTriangle, TrendingUp, Navigation, Store, X, Briefcase, Sparkles, Compass, Radio, ChevronUp, ChevronDown } from 'lucide-react';
 import { scoreCell, ProductConfig } from '../../shared/engine/score';
 
 interface MapTabProps {
@@ -40,10 +40,8 @@ function MapEngine({
   const pointsLayerRef = useRef<google.maps.Data | null>(null);
   const threatMarkerRef = useRef<google.maps.Marker | null>(null);
 
-  // 1. Pan to Alert Cell if Triggered
   useEffect(() => {
     if (!map || !alertThreatCell) return;
-
     map.panTo({ lat: alertThreatCell.lat, lng: alertThreatCell.lng });
     map.setZoom(15);
 
@@ -52,25 +50,21 @@ function MapEngine({
     const marker = new google.maps.Marker({
       position: { lat: alertThreatCell.lat, lng: alertThreatCell.lng },
       map: map,
-      title: "Active Threat Detected!",
+      title: "Threat Detected!",
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
-        scale: 16,
+        scale: 14,
         fillColor: '#DC2626',
         fillOpacity: 0.85,
         strokeColor: '#FFFFFF',
-        strokeWeight: 3.5
+        strokeWeight: 3
       }
     });
 
     threatMarkerRef.current = marker;
-
-    return () => {
-      if (threatMarkerRef.current) threatMarkerRef.current.setMap(null);
-    };
+    return () => { if (threatMarkerRef.current) threatMarkerRef.current.setMap(null); };
   }, [map, alertThreatCell]);
 
-  // 2. Grid Layer Init
   useEffect(() => {
     if (!map || !gridData) return;
     if (gridLayerRef.current) gridLayerRef.current.setMap(null);
@@ -88,7 +82,6 @@ function MapEngine({
     return () => { layer.setMap(null); };
   }, [map, gridData]);
 
-  // 3. Dynamic Styling
   useEffect(() => {
     const layer = gridLayerRef.current;
     if (!layer) return;
@@ -97,7 +90,6 @@ function MapEngine({
       const p: any = {};
       feat.forEachProperty((val, key) => { p[key] = val; });
 
-      // MODE A: BUSINESS OPPORTUNITY
       if (activeMode === 'opportunity' && selectedProduct) {
         const res = scoreCell(p, selectedProduct, umkmData);
         if (res.excluded || res.score === null || res.score < 0.25) {
@@ -115,7 +107,6 @@ function MapEngine({
         };
       }
 
-      // MODE B: STRATEGIC QUADRANTS
       if (activeMode === 'quadrant') {
         let oppScore = 0.0;
         if (selectedProduct) {
@@ -159,7 +150,6 @@ function MapEngine({
         };
       }
 
-      // MODE C: BASELINE ECOSYSTEM
       const m17 = p.mangrove_frac_2017 || 0;
       const m21 = p.mangrove_frac_2021 || 0;
       const m24 = p.mangrove_frac_2024 || 0;
@@ -213,7 +203,6 @@ function MapEngine({
     });
   }, [activeMode, selectedProduct, selectedQuadrant, selectedYear, showMangrove, showPond, showRisk, showGain]);
 
-  // 4. Roads
   useEffect(() => {
     if (!map || !roadsData) return;
     if (roadsLayerRef.current) roadsLayerRef.current.setMap(null);
@@ -231,22 +220,16 @@ function MapEngine({
     return () => { layer.setMap(null); };
   }, [map, roadsData, showRoads]);
 
-  // 5. Points Layer: STRICT LAND-ONLY FILTER!
   useEffect(() => {
     if (!map) return;
     if (pointsLayerRef.current) pointsLayerRef.current.setMap(null);
 
     const pointFeatures: any[] = [];
 
-    // Filter Village Gathering Hubs (Must be on land settlements, NEVER in bay waters)
     if (showGathering && gatheringData?.features) {
       gatheringData.features.forEach((f: any) => {
         const [lng, lat] = f.geometry.coordinates;
-
-        // Bounding Box to exclude open water in Teluk Jor / Teluk Jukung:
-        // Any point east of 116.492 that is south of -8.840 is open water!
         const isWater = (lng > 116.491 && lat < -8.841) || (lng < 116.465 && lat < -8.840);
-        
         if (!isWater) {
           pointFeatures.push({
             type: 'Feature',
@@ -257,7 +240,6 @@ function MapEngine({
       });
     }
 
-    // Filter UMKM Enterprises
     if (showUMKM && umkmData) {
       umkmData.forEach((u: any) => {
         const isWater = (u.lng > 116.491 && u.lat < -8.841) || (u.lng < 116.465 && u.lat < -8.840);
@@ -280,11 +262,11 @@ function MapEngine({
         return {
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
-            scale: 6.5,
-            fillColor: '#0284C7', // Sky Blue
+            scale: 6,
+            fillColor: '#0284C7',
             fillOpacity: 1.0,
             strokeColor: '#FFFFFF',
-            strokeWeight: 2.5
+            strokeWeight: 2
           },
           title: feat.getProperty('name')
         };
@@ -294,7 +276,7 @@ function MapEngine({
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
             scale: 5,
-            fillColor: '#306D29', // Forest Green
+            fillColor: '#306D29',
             fillOpacity: 1.0,
             strokeColor: '#FBF5DD',
             strokeWeight: 1.5
@@ -350,6 +332,9 @@ export const MapTab: React.FC<MapTabProps> = ({
   const [selectedHub, setSelectedHub] = useState<any | null>(null);
 
   const [activeAlert, setActiveAlert] = useState<any | null>(null);
+  
+  // Mobile Collapsible Bottom Sheet State
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   const activeProduct: ProductConfig | null = useMemo(() => {
     const pack = packs[selectedPackId];
@@ -438,29 +423,28 @@ export const MapTab: React.FC<MapTabProps> = ({
 
       {/* TOP REAL-TIME ALERT TOAST BANNER */}
       {activeAlert && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-[#DC2626] text-white px-5 py-3 rounded-2xl shadow-2xl border-2 border-white flex items-center space-x-3.5 animate-bounce">
-          <Radio className="w-5 h-5 text-white animate-pulse" />
-          <div className="text-xs">
-            <span className="font-extrabold uppercase tracking-wide block">🚨 Pokmaswas Threat Alert Dispatched (Pub/Sub)</span>
-            <span className="font-medium text-white/90">
-              Loss detected at Cell {activeAlert.cell_id} ({activeAlert.village}) • Threat Level: {activeAlert.risk} • Area: ~{activeAlert.loss_area} ha
-            </span>
+        <div className="absolute top-16 sm:top-20 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-40 bg-[#DC2626] text-white px-4 py-2.5 rounded-2xl shadow-2xl border-2 border-white flex items-center justify-between sm:space-x-3.5 animate-bounce">
+          <div className="flex items-center space-x-2">
+            <Radio className="w-5 h-5 text-white animate-pulse shrink-0" />
+            <div className="text-xs">
+              <span className="font-extrabold uppercase tracking-wide block">🚨 Threat Dispatched</span>
+              <span className="font-medium text-white/90 text-[11px]">
+                {activeAlert.village} ({activeAlert.cell_id}) • Threat: {activeAlert.risk} • ~{activeAlert.loss_area} ha
+              </span>
+            </div>
           </div>
-          <button
-            onClick={() => setActiveAlert(null)}
-            className="p-1 hover:bg-red-800 rounded-lg text-white/80 hover:text-white"
-          >
+          <button onClick={() => setActiveAlert(null)} className="p-1 hover:bg-red-800 rounded-lg">
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
-      {/* TOP NAVIGATION / MODE SWITCHER */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-[#E7E1B1] border-2 border-[#D5CC94] rounded-2xl p-1.5 shadow-2xl flex space-x-1.5">
+      {/* TOP NAVIGATION / MODE SWITCHER (Mobile-Scrollable) */}
+      <div className="absolute top-2 sm:top-4 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-30 bg-[#E7E1B1] border-2 border-[#D5CC94] rounded-2xl p-1 shadow-xl flex overflow-x-auto no-scrollbar space-x-1">
         {[
-          { id: 'baseline', label: 'Land Cover & Satellite', icon: Layers },
-          { id: 'opportunity', label: 'Business Opportunity Heatmap', icon: Sparkles },
-          { id: 'quadrant', label: 'Strategic Quadrants', icon: Compass },
+          { id: 'baseline', label: 'Land Cover', icon: Layers },
+          { id: 'opportunity', label: 'Opportunity', icon: Sparkles },
+          { id: 'quadrant', label: 'Quadrants', icon: Compass },
         ].map((m) => {
           const Icon = m.icon;
           const isActive = activeMode === m.id;
@@ -468,24 +452,43 @@ export const MapTab: React.FC<MapTabProps> = ({
             <button
               key={m.id}
               onClick={() => setActiveMode(m.id as any)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                 isActive
-                  ? 'bg-[#306D29] text-[#FBF5DD] shadow-md'
+                  ? 'bg-[#306D29] text-[#FBF5DD] shadow'
                   : 'text-[#0D530E] hover:bg-[#F2E8BF]'
               }`}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="w-3.5 h-3.5" />
               <span>{m.label}</span>
             </button>
           );
         })}
       </div>
 
-      {/* LEFT CONTROL PANEL */}
-      <div className="absolute top-20 left-4 z-30 w-88 bg-[#E7E1B1] border-2 border-[#D5CC94] rounded-3xl shadow-2xl p-4 text-[#0D530E] space-y-4 max-h-[82vh] overflow-y-auto">
+      {/* MOBILE TOGGLE BUTTON FOR DRAWER */}
+      <button
+        onClick={() => setMobileDrawerOpen(!mobileDrawerOpen)}
+        className="sm:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-30 bg-[#306D29] text-[#FBF5DD] px-4 py-2 rounded-full shadow-2xl font-bold text-xs flex items-center space-x-1.5 border-2 border-[#D5CC94]"
+      >
+        <span>{mobileDrawerOpen ? 'Close Controls' : '⚙️ Layer Controls'}</span>
+        {mobileDrawerOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+      </button>
+
+      {/* LEFT CONTROL PANEL (Desktop: Left Card | Mobile: Slide-Up Bottom Drawer) */}
+      <div className={`
+        ${mobileDrawerOpen ? 'translate-y-0' : 'translate-y-full sm:translate-y-0'}
+        transition-transform duration-300 ease-in-out
+        fixed sm:absolute bottom-0 sm:bottom-auto sm:top-20 left-0 sm:left-4 z-30 
+        w-full sm:w-88 max-h-[75vh] sm:max-h-[82vh] 
+        bg-[#E7E1B1] border-t-2 sm:border-2 border-[#D5CC94] rounded-t-3xl sm:rounded-3xl 
+        shadow-2xl p-4 text-[#0D530E] space-y-4 overflow-y-auto
+      `}>
         
+        {/* Mobile handle indicator */}
+        <div className="w-10 h-1 bg-[#D5CC94] rounded-full mx-auto sm:hidden mb-2"></div>
+
         {/* SIMULATE ALERT BUTTON */}
-        <div className="bg-[#FBF5DD] border-2 border-red-500/50 p-3.5 rounded-2xl space-y-2 shadow-sm">
+        <div className="bg-[#FBF5DD] border-2 border-red-500/50 p-3 rounded-2xl space-y-2 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-black text-red-700 uppercase tracking-wider flex items-center">
               <AlertTriangle className="w-4 h-4 mr-1 text-red-600" /> Community Threat Alert
@@ -599,11 +602,11 @@ export const MapTab: React.FC<MapTabProps> = ({
                   const firstProd = packs[e.target.value]?.products[0]?.product_id || '';
                   setSelectedProductId(firstProd);
                 }}
-                className="w-full bg-[#FBF5DD] border border-[#D5CC94] rounded-xl p-2.5 text-xs font-bold text-[#0D530E] focus:outline-none focus:border-[#306D29]"
+                className="w-full bg-[#FBF5DD] border border-[#D5CC94] rounded-xl p-2 text-xs font-bold text-[#0D530E]"
               >
                 {Object.keys(packs).map((pId) => (
                   <option key={pId} value={pId}>
-                    {packs[pId].name} ({packs[pId].products.length} products)
+                    {packs[pId].name}
                   </option>
                 ))}
               </select>
@@ -614,7 +617,7 @@ export const MapTab: React.FC<MapTabProps> = ({
               <select
                 value={selectedProductId}
                 onChange={(e) => setSelectedProductId(e.target.value)}
-                className="w-full bg-[#FBF5DD] border border-[#D5CC94] rounded-xl p-2.5 text-xs font-bold text-[#0D530E] focus:outline-none focus:border-[#306D29]"
+                className="w-full bg-[#FBF5DD] border border-[#D5CC94] rounded-xl p-2 text-xs font-bold text-[#0D530E]"
               >
                 {packs[selectedPackId]?.products.map((p: any) => (
                   <option key={p.product_id} value={p.product_id}>
@@ -625,18 +628,9 @@ export const MapTab: React.FC<MapTabProps> = ({
             </div>
 
             {activeProduct && (
-              <div className="bg-[#FBF5DD] p-3 rounded-xl border border-[#D5CC94] space-y-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-[#306D29] font-semibold">Ecological Impact:</span>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                    activeProduct.conservation_alignment === 1
-                      ? 'bg-[#E7E1B1] text-[#0D530E] border border-[#306D29]'
-                      : 'bg-amber-100 text-amber-900 border border-amber-300'
-                  }`}>
-                    {activeProduct.conservation_alignment === 1 ? 'Protects Mangrove' : 'Neutral (Harvest Rules)'}
-                  </span>
-                </div>
-                <p className="text-[11px] text-[#0D530E] italic">"{activeProduct.harvest_note}"</p>
+              <div className="bg-[#FBF5DD] p-3 rounded-xl border border-[#D5CC94] space-y-1.5 text-xs">
+                <span className="text-[#306D29] font-semibold block">Harvest Guideline:</span>
+                <p className="text-[11px] text-[#0D530E] italic leading-tight">"{activeProduct.harvest_note}"</p>
               </div>
             )}
 
@@ -646,19 +640,11 @@ export const MapTab: React.FC<MapTabProps> = ({
                 {topSites.map((item: any, idx: number) => (
                   <div
                     key={item.props.cell_id}
-                    onClick={() => { setSelectedCell(item.props); }}
-                    className="flex items-center justify-between p-2 rounded-xl bg-[#FBF5DD] hover:bg-[#F2E8BF] border border-[#D5CC94] cursor-pointer transition-colors text-xs"
+                    onClick={() => { setSelectedCell(item.props); setMobileDrawerOpen(false); }}
+                    className="flex items-center justify-between p-2 rounded-xl bg-[#FBF5DD] border border-[#D5CC94] text-xs cursor-pointer"
                   >
-                    <div className="flex items-center space-x-2">
-                      <span className="w-5 h-5 rounded-full bg-[#306D29] text-[#FBF5DD] text-[11px] font-bold flex items-center justify-center">
-                        {idx + 1}
-                      </span>
-                      <span className="font-mono font-bold text-[#0D530E]">{item.props.cell_id}</span>
-                      <span className="text-[11px] text-[#306D29]">({item.props.desa})</span>
-                    </div>
-                    <span className="font-extrabold text-[#0D530E] font-mono">
-                      {Math.round((item.scoreRes.score || 0) * 100)}%
-                    </span>
+                    <span className="font-bold text-[#0D530E]">{idx + 1}. {item.props.cell_id} ({item.props.desa})</span>
+                    <span className="font-extrabold text-[#306D29]">{Math.round((item.scoreRes.score || 0) * 100)}%</span>
                   </div>
                 ))}
               </div>
@@ -671,31 +657,27 @@ export const MapTab: React.FC<MapTabProps> = ({
           <div className="space-y-4">
             <div className="border-b border-[#D5CC94] pb-2">
               <span className="font-extrabold text-sm tracking-wide text-[#0D530E]">Decision Matrix</span>
-              <p className="text-[11px] text-[#306D29] mt-0.5">Opportunity (≥40%) vs. Conversion Risk (≥45%)</p>
             </div>
 
             <div className="space-y-2 text-xs">
               {[
-                { id: 'all', label: 'All Quadrants', color: 'bg-slate-400', desc: 'Display all scored cells' },
-                { id: 'accompany', label: 'Accompany Business First', color: 'bg-[#C2410C]', desc: 'High Opportunity + High Risk' },
-                { id: 'expand', label: 'Expand & Connect Buyers', color: 'bg-[#306D29]', desc: 'High Opportunity + Low Risk' },
-                { id: 'patrol', label: 'Patrol & Restore', color: 'bg-[#D97706]', desc: 'Low Opportunity + High Risk' },
-                { id: 'monitor', label: 'Monitor Baseline', color: 'bg-slate-400', desc: 'Low Opportunity + Low Risk' },
+                { id: 'all', label: 'All Quadrants', color: 'bg-slate-400' },
+                { id: 'accompany', label: 'Accompany Business First', color: 'bg-[#C2410C]' },
+                { id: 'expand', label: 'Expand & Connect Buyers', color: 'bg-[#306D29]' },
+                { id: 'patrol', label: 'Patrol & Restore', color: 'bg-[#D97706]' },
+                { id: 'monitor', label: 'Monitor Baseline', color: 'bg-slate-400' },
               ].map((q) => (
                 <button
                   key={q.id}
                   onClick={() => setSelectedQuadrant(q.id)}
-                  className={`w-full flex flex-col p-2.5 rounded-xl text-left transition-all ${
+                  className={`w-full flex items-center space-x-2 p-2.5 rounded-xl text-left transition-all ${
                     selectedQuadrant === q.id
-                      ? 'bg-[#FBF5DD] border-2 border-[#306D29] shadow-sm'
-                      : 'hover:bg-[#F2E8BF] border border-transparent'
+                      ? 'bg-[#FBF5DD] border-2 border-[#306D29] font-bold'
+                      : 'hover:bg-[#F2E8BF]'
                   }`}
                 >
-                  <div className="flex items-center space-x-2">
-                    <span className={`w-3.5 h-3.5 rounded-full ${q.color} shrink-0`}></span>
-                    <span className="text-xs font-bold text-[#0D530E]">{q.label}</span>
-                  </div>
-                  <span className="text-[11px] text-[#306D29] mt-0.5 pl-5.5 font-medium">{q.desc}</span>
+                  <span className={`w-3.5 h-3.5 rounded-full ${q.color} shrink-0`}></span>
+                  <span className="text-xs text-[#0D530E]">{q.label}</span>
                 </button>
               ))}
             </div>
@@ -703,73 +685,37 @@ export const MapTab: React.FC<MapTabProps> = ({
         )}
 
         {/* CONTEXT TOGGLES */}
-        <div className="space-y-2 pt-3 border-t border-[#D5CC94] text-xs">
-          <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#306D29]">Context Layers</span>
+        <div className="space-y-2 pt-2 border-t border-[#D5CC94] text-xs">
           <label className="flex items-center justify-between text-[#0D530E] font-medium cursor-pointer">
             <span className="flex items-center"><Briefcase className="w-4 h-4 mr-1.5 text-[#306D29]" /> UMKM Enterprises</span>
             <input type="checkbox" checked={showUMKM} onChange={(e) => setShowUMKM(e.target.checked)} className="accent-[#306D29] rounded" />
           </label>
           <label className="flex items-center justify-between text-[#0D530E] font-medium cursor-pointer">
-            <span className="flex items-center"><Store className="w-4 h-4 mr-1.5 text-[#0284C7]" /> Village Hubs (18 Anchors)</span>
+            <span className="flex items-center"><Store className="w-4 h-4 mr-1.5 text-[#0284C7]" /> Village Hubs</span>
             <input type="checkbox" checked={showGathering} onChange={(e) => setShowGathering(e.target.checked)} className="accent-[#0284C7] rounded" />
           </label>
           <label className="flex items-center justify-between text-[#0D530E] font-medium cursor-pointer">
-            <span className="flex items-center"><Navigation className="w-4 h-4 mr-1.5 text-[#D97706]" /> Road Network (Overture)</span>
+            <span className="flex items-center"><Navigation className="w-4 h-4 mr-1.5 text-[#D97706]" /> Road Network</span>
             <input type="checkbox" checked={showRoads} onChange={(e) => setShowRoads(e.target.checked)} className="accent-[#D97706] rounded" />
           </label>
         </div>
       </div>
 
-      {/* RIGHT PANEL: Cell Inspector */}
+      {/* INSPECTOR BOTTOM SHEET FOR MOBILE / RIGHT PANEL FOR DESKTOP */}
       {selectedCell && (
-        <div className="absolute top-20 right-4 z-30 w-88 bg-[#E7E1B1] border-2 border-[#D5CC94] rounded-3xl shadow-2xl p-4 text-[#0D530E] space-y-3 max-h-[82vh] overflow-y-auto">
+        <div className="fixed sm:absolute bottom-0 sm:bottom-auto sm:top-20 right-0 sm:right-4 z-40 w-full sm:w-88 max-h-[70vh] sm:max-h-[82vh] bg-[#E7E1B1] border-t-2 sm:border-2 border-[#D5CC94] rounded-t-3xl sm:rounded-3xl shadow-2xl p-4 text-[#0D530E] space-y-3 overflow-y-auto">
           <div className="flex items-center justify-between border-b border-[#D5CC94] pb-2">
             <div>
               <span className="text-xs text-[#306D29] font-medium block">Inspected 100m Cell</span>
               <span className="font-extrabold text-[#0D530E] text-base font-mono">{selectedCell.cell_id}</span>
               <span className="text-xs text-[#306D29] ml-2">({selectedCell.desa})</span>
             </div>
-            <button onClick={() => setSelectedCell(null)} className="p-1 hover:bg-[#F2E8BF] rounded-lg text-[#0D530E]">
+            <button onClick={() => setSelectedCell(null)} className="p-1 hover:bg-[#F2E8BF] rounded-lg">
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {activeMode === 'opportunity' && activeProduct && (
-            <div className="space-y-2.5">
-              {(() => {
-                const scoreResult = scoreCell(selectedCell, activeProduct, umkmData);
-                return (
-                  <>
-                    <div className="flex items-center justify-between bg-[#FBF5DD] p-2.5 rounded-xl border border-[#D5CC94]">
-                      <span className="text-xs text-[#0D530E] font-bold">{activeProduct.name}:</span>
-                      <span className="text-base font-black text-[#0D530E] font-mono">
-                        {scoreResult.score !== null ? `${Math.round(scoreResult.score * 100)}%` : 'Excluded'}
-                      </span>
-                    </div>
-
-                    {!scoreResult.excluded && (
-                      <div className="space-y-2">
-                        <span className="text-[11px] font-extrabold text-[#306D29] uppercase tracking-wider block">Factor Contribution:</span>
-                        {scoreResult.factors.map((f: any) => (
-                          <div key={f.label} className="space-y-0.5 text-xs">
-                            <div className="flex justify-between text-[#0D530E] font-medium">
-                              <span>{f.label}</span>
-                              <span className="font-mono font-bold text-[#306D29]">+{Math.round(f.contribution * 100)}%</span>
-                            </div>
-                            <div className="w-full bg-[#FBF5DD] h-2 rounded-full overflow-hidden border border-[#D5CC94]">
-                              <div className="bg-[#306D29] h-full rounded-full" style={{ width: `${Math.round(f.transformed_value * 100)}%` }}></div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
-          )}
-
-          <div className="space-y-2 text-xs pt-2 border-t border-[#D5CC94]">
+          <div className="space-y-2 text-xs pt-2">
             <div className="flex justify-between py-1 border-b border-[#D5CC94]/60">
               <span className="text-[#306D29]">Mangrove Cover:</span>
               <span className="font-bold text-[#0D530E]">{Math.round((selectedCell.mangrove_frac_2024 || 0) * 100)}%</span>
@@ -790,35 +736,34 @@ export const MapTab: React.FC<MapTabProps> = ({
         </div>
       )}
 
-      {/* RIGHT PANEL: Village Hub Inspector */}
+      {/* VILLAGE HUB INSPECTOR */}
       {selectedHub && (
-        <div className="absolute top-20 right-4 z-30 w-88 bg-[#E7E1B1] border-2 border-[#0284C7] rounded-3xl shadow-2xl p-4 text-[#0D530E] space-y-3">
+        <div className="fixed sm:absolute bottom-0 sm:bottom-auto sm:top-20 right-0 sm:right-4 z-40 w-full sm:w-88 bg-[#E7E1B1] border-t-2 sm:border-2 border-[#0284C7] rounded-t-3xl sm:rounded-3xl shadow-2xl p-4 text-[#0D530E] space-y-3">
           <div className="flex items-center justify-between border-b border-[#D5CC94] pb-2">
             <div>
-              <span className="text-[11px] text-[#0284C7] uppercase font-extrabold tracking-wider">Village Gathering Anchor</span>
+              <span className="text-[11px] text-[#0284C7] uppercase font-extrabold tracking-wider">Village Anchor</span>
               <span className="font-extrabold text-[#0D530E] text-base block">{selectedHub.name}</span>
             </div>
             <button onClick={() => setSelectedHub(null)} className="p-1 hover:bg-[#F2E8BF] rounded-lg">
               <X className="w-5 h-5" />
             </button>
           </div>
-
           <div className="space-y-2 text-xs">
             <div className="flex justify-between py-1 border-b border-[#D5CC94]/60">
               <span className="text-[#306D29]">Category:</span>
-              <span className="font-bold text-[#0284C7] capitalize">{selectedHub.cat?.replace('_', ' ') || 'Community Hub'}</span>
+              <span className="font-bold text-[#0284C7] capitalize">{selectedHub.cat?.replace('_', ' ')}</span>
             </div>
             <div className="flex justify-between py-1">
-              <span className="text-[#306D29]">Footfall Multiplier:</span>
+              <span className="text-[#306D29]">Footfall Weight:</span>
               <span className="font-bold text-[#D97706]">{selectedHub.weight}x</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* RIGHT PANEL: UMKM Inspector */}
+      {/* UMKM INSPECTOR */}
       {selectedUMKM && (
-        <div className="absolute top-20 right-4 z-30 w-88 bg-[#E7E1B1] border-2 border-[#306D29] rounded-3xl shadow-2xl p-4 text-[#0D530E] space-y-3">
+        <div className="fixed sm:absolute bottom-0 sm:bottom-auto sm:top-20 right-0 sm:right-4 z-40 w-full sm:w-88 bg-[#E7E1B1] border-t-2 sm:border-2 border-[#306D29] rounded-t-3xl sm:rounded-3xl shadow-2xl p-4 text-[#0D530E] space-y-3">
           <div className="flex items-center justify-between border-b border-[#D5CC94] pb-2">
             <div>
               <span className="text-[11px] text-[#306D29] uppercase font-extrabold tracking-wider">Simulated Enterprise</span>
@@ -828,15 +773,10 @@ export const MapTab: React.FC<MapTabProps> = ({
               <X className="w-5 h-5" />
             </button>
           </div>
-
           <div className="space-y-2 text-xs">
             <div className="flex justify-between py-1 border-b border-[#D5CC94]/60">
               <span className="text-[#306D29]">Product:</span>
               <span className="font-bold text-[#0D530E] capitalize">{selectedUMKM.product_id.replace('_', ' ')}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-[#D5CC94]/60">
-              <span className="text-[#306D29]">Resource Pack:</span>
-              <span className="font-bold text-[#306D29] capitalize">{selectedUMKM.pack_id}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-[#D5CC94]/60">
               <span className="text-[#306D29]">Village:</span>
