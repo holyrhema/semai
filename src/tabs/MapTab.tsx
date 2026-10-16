@@ -166,7 +166,7 @@ function MapEngine({
         };
       }
 
-      if (showGain && (p.p_gain || 0) > 0.3 && (p.dist_coast_m || 999) <= 150) {
+      if (showGain && (p.p_gain || 0) >= 0.2) {
         return {
           fillColor: '#306D29',
           fillOpacity: 0.85,
