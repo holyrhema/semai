@@ -40,6 +40,7 @@ function MapEngine({
   const pointsLayerRef = useRef<google.maps.Data | null>(null);
   const threatMarkerRef = useRef<google.maps.Marker | null>(null);
 
+  // Pan to Alert Cell
   useEffect(() => {
     if (!map || !alertThreatCell) return;
     map.panTo({ lat: alertThreatCell.lat, lng: alertThreatCell.lng });
@@ -50,14 +51,14 @@ function MapEngine({
     const marker = new google.maps.Marker({
       position: { lat: alertThreatCell.lat, lng: alertThreatCell.lng },
       map: map,
-      title: "Threat Detected!",
+      title: "Active Threat Detected!",
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
         scale: 14,
         fillColor: '#DC2626',
         fillOpacity: 0.85,
         strokeColor: '#FFFFFF',
-        strokeWeight: 3
+        strokeWeight: 3.5
       }
     });
 
@@ -65,6 +66,7 @@ function MapEngine({
     return () => { if (threatMarkerRef.current) threatMarkerRef.current.setMap(null); };
   }, [map, alertThreatCell]);
 
+  // Grid Data Layer
   useEffect(() => {
     if (!map || !gridData) return;
     if (gridLayerRef.current) gridLayerRef.current.setMap(null);
@@ -82,6 +84,7 @@ function MapEngine({
     return () => { layer.setMap(null); };
   }, [map, gridData]);
 
+  // Dynamic Styling Logic
   useEffect(() => {
     const layer = gridLayerRef.current;
     if (!layer) return;
@@ -90,6 +93,7 @@ function MapEngine({
       const p: any = {};
       feat.forEachProperty((val, key) => { p[key] = val; });
 
+      // MODE A: OPPORTUNITY
       if (activeMode === 'opportunity' && selectedProduct) {
         const res = scoreCell(p, selectedProduct, umkmData);
         if (res.excluded || res.score === null || res.score < 0.25) {
@@ -107,6 +111,7 @@ function MapEngine({
         };
       }
 
+      // MODE B: QUADRANTS
       if (activeMode === 'quadrant') {
         let oppScore = 0.0;
         if (selectedProduct) {
@@ -150,6 +155,7 @@ function MapEngine({
         };
       }
 
+      // MODE C: BASELINE ECOSYSTEM
       const m17 = p.mangrove_frac_2017 || 0;
       const m21 = p.mangrove_frac_2021 || 0;
       const m24 = p.mangrove_frac_2024 || 0;
@@ -203,6 +209,7 @@ function MapEngine({
     });
   }, [activeMode, selectedProduct, selectedQuadrant, selectedYear, showMangrove, showPond, showRisk, showGain]);
 
+  // Roads Layer
   useEffect(() => {
     if (!map || !roadsData) return;
     if (roadsLayerRef.current) roadsLayerRef.current.setMap(null);
@@ -220,6 +227,7 @@ function MapEngine({
     return () => { layer.setMap(null); };
   }, [map, roadsData, showRoads]);
 
+  // Points Layer
   useEffect(() => {
     if (!map) return;
     if (pointsLayerRef.current) pointsLayerRef.current.setMap(null);
@@ -332,8 +340,6 @@ export const MapTab: React.FC<MapTabProps> = ({
   const [selectedHub, setSelectedHub] = useState<any | null>(null);
 
   const [activeAlert, setActiveAlert] = useState<any | null>(null);
-  
-  // Mobile Collapsible Bottom Sheet State
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   const activeProduct: ProductConfig | null = useMemo(() => {
@@ -376,122 +382,25 @@ export const MapTab: React.FC<MapTabProps> = ({
   };
 
   return (
-    <div className="relative w-full h-full bg-[#FBF5DD]">
-      <APIProvider apiKey={apiKey}>
-        <Map
-          defaultCenter={{ lat: -8.8475, lng: 116.4883 }}
-          defaultZoom={13}
-          mapTypeId="hybrid"
-          className="w-full h-full"
-          options={{ clickableIcons: false }}
-        >
-          <MapEngine
-            gridData={gridData}
-            roadsData={roadsData}
-            gatheringData={gatheringData}
-            umkmData={umkmData}
-            activeMode={activeMode}
-            selectedYear={selectedYear}
-            showMangrove={showMangrove}
-            showPond={showPond}
-            showRisk={showRisk}
-            showGain={showGain}
-            selectedProduct={activeProduct}
-            selectedQuadrant={selectedQuadrant}
-            showRoads={showRoads}
-            showGathering={showGathering}
-            showUMKM={showUMKM}
-            alertThreatCell={activeAlert}
-            onCellClick={(props: any) => {
-              setSelectedUMKM(null);
-              setSelectedHub(null);
-              setSelectedCell(props);
-            }}
-            onUMKMClick={(u: any) => {
-              setSelectedCell(null);
-              setSelectedHub(null);
-              setSelectedUMKM(u);
-            }}
-            onHubClick={(h: any) => {
-              setSelectedCell(null);
-              setSelectedUMKM(null);
-              setSelectedHub(h);
-            }}
-          />
-        </Map>
-      </APIProvider>
-
-      {/* TOP REAL-TIME ALERT TOAST BANNER */}
-      {activeAlert && (
-        <div className="absolute top-16 sm:top-20 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-40 bg-[#DC2626] text-white px-4 py-2.5 rounded-2xl shadow-2xl border-2 border-white flex items-center justify-between sm:space-x-3.5 animate-bounce">
-          <div className="flex items-center space-x-2">
-            <Radio className="w-5 h-5 text-white animate-pulse shrink-0" />
-            <div className="text-xs">
-              <span className="font-extrabold uppercase tracking-wide block">🚨 Threat Dispatched</span>
-              <span className="font-medium text-white/90 text-[11px]">
-                {activeAlert.village} ({activeAlert.cell_id}) • Threat: {activeAlert.risk} • ~{activeAlert.loss_area} ha
-              </span>
-            </div>
-          </div>
-          <button onClick={() => setActiveAlert(null)} className="p-1 hover:bg-red-800 rounded-lg">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* TOP NAVIGATION / MODE SWITCHER (Mobile-Scrollable) */}
-      <div className="absolute top-2 sm:top-4 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-30 bg-[#E7E1B1] border-2 border-[#D5CC94] rounded-2xl p-1 shadow-xl flex overflow-x-auto no-scrollbar space-x-1">
-        {[
-          { id: 'baseline', label: 'Land Cover', icon: Layers },
-          { id: 'opportunity', label: 'Opportunity', icon: Sparkles },
-          { id: 'quadrant', label: 'Quadrants', icon: Compass },
-        ].map((m) => {
-          const Icon = m.icon;
-          const isActive = activeMode === m.id;
-          return (
-            <button
-              key={m.id}
-              onClick={() => setActiveMode(m.id as any)}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
-                isActive
-                  ? 'bg-[#306D29] text-[#FBF5DD] shadow'
-                  : 'text-[#0D530E] hover:bg-[#F2E8BF]'
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              <span>{m.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* MOBILE TOGGLE BUTTON FOR DRAWER */}
-      <button
-        onClick={() => setMobileDrawerOpen(!mobileDrawerOpen)}
-        className="sm:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-30 bg-[#306D29] text-[#FBF5DD] px-4 py-2 rounded-full shadow-2xl font-bold text-xs flex items-center space-x-1.5 border-2 border-[#D5CC94]"
-      >
-        <span>{mobileDrawerOpen ? 'Close Controls' : '⚙️ Layer Controls'}</span>
-        {mobileDrawerOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-      </button>
-
-      {/* LEFT CONTROL PANEL (Desktop: Left Card | Mobile: Slide-Up Bottom Drawer) */}
-      <div className={`
-        ${mobileDrawerOpen ? 'translate-y-0' : 'translate-y-full sm:translate-y-0'}
+    <div className="relative w-full h-full flex overflow-hidden bg-[#FBF5DD]">
+      
+      {/* 1. DEDICATED LEFT SIDEBAR NAV PANEL (Fixed Width on Desktop) */}
+      <aside className={`
+        ${mobileDrawerOpen ? 'translate-y-0' : 'translate-y-full md:translate-y-0'}
         transition-transform duration-300 ease-in-out
-        fixed sm:absolute bottom-0 sm:bottom-auto sm:top-20 left-0 sm:left-4 z-30 
-        w-full sm:w-88 max-h-[75vh] sm:max-h-[82vh] 
-        bg-[#E7E1B1] border-t-2 sm:border-2 border-[#D5CC94] rounded-t-3xl sm:rounded-3xl 
-        shadow-2xl p-4 text-[#0D530E] space-y-4 overflow-y-auto
+        fixed md:static bottom-0 left-0 z-30
+        w-full md:w-80 h-[70vh] md:h-full shrink-0
+        bg-[#E7E1B1] border-t-2 md:border-t-0 md:border-r-2 border-[#D5CC94]
+        shadow-2xl md:shadow-none p-4 text-[#0D530E] space-y-4 overflow-y-auto
       `}>
-        
-        {/* Mobile handle indicator */}
-        <div className="w-10 h-1 bg-[#D5CC94] rounded-full mx-auto sm:hidden mb-2"></div>
+        {/* Mobile Drag Indicator */}
+        <div className="w-10 h-1 bg-[#D5CC94] rounded-full mx-auto md:hidden mb-2"></div>
 
         {/* SIMULATE ALERT BUTTON */}
         <div className="bg-[#FBF5DD] border-2 border-red-500/50 p-3 rounded-2xl space-y-2 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-black text-red-700 uppercase tracking-wider flex items-center">
-              <AlertTriangle className="w-4 h-4 mr-1 text-red-600" /> Community Threat Alert
+              <AlertTriangle className="w-4 h-4 mr-1 text-red-600" /> Threat Alert
             </span>
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-mono font-extrabold border border-red-300">
               Pub/Sub
@@ -509,31 +418,23 @@ export const MapTab: React.FC<MapTabProps> = ({
         {activeMode === 'baseline' && (
           <div className="space-y-4">
             <div className="border-b border-[#D5CC94] pb-2">
-              <span className="font-extrabold text-sm tracking-wide text-[#0D530E]">Satellite Observation</span>
+              <span className="font-extrabold text-sm tracking-wide text-[#0D530E]">Observation Year</span>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-[#306D29] font-bold flex items-center">
-                  <Calendar className="w-4 h-4 mr-1.5 text-[#306D29]" /> Select Year:
-                </span>
-                <span className="font-extrabold text-[#0D530E] font-mono text-sm">{selectedYear}</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {[2017, 2021, 2024].map((year) => (
-                  <button
-                    key={year}
-                    onClick={() => setSelectedYear(year as any)}
-                    className={`py-2 rounded-xl text-xs font-bold transition-all ${
-                      selectedYear === year
-                        ? 'bg-[#306D29] text-[#FBF5DD] shadow'
-                        : 'bg-[#FBF5DD] text-[#0D530E] hover:bg-[#F2E8BF] border border-[#D5CC94]'
-                    }`}
-                  >
-                    {year}
-                  </button>
-                ))}
-              </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[2017, 2021, 2024].map((year) => (
+                <button
+                  key={year}
+                  onClick={() => setSelectedYear(year as any)}
+                  className={`py-2 rounded-xl text-xs font-bold transition-all ${
+                    selectedYear === year
+                      ? 'bg-[#306D29] text-[#FBF5DD] shadow'
+                      : 'bg-[#FBF5DD] text-[#0D530E] hover:bg-[#F2E8BF] border border-[#D5CC94]'
+                  }`}
+                >
+                  {year}
+                </button>
+              ))}
             </div>
 
             <div className="space-y-2 pt-2 border-t border-[#D5CC94]">
@@ -590,7 +491,7 @@ export const MapTab: React.FC<MapTabProps> = ({
         {activeMode === 'opportunity' && (
           <div className="space-y-4">
             <div className="border-b border-[#D5CC94] pb-2">
-              <span className="font-extrabold text-sm tracking-wide text-[#0D530E]">Product Suitability Model</span>
+              <span className="font-extrabold text-sm tracking-wide text-[#0D530E]">Product Suitability</span>
             </div>
 
             <div className="space-y-1.5">
@@ -641,7 +542,7 @@ export const MapTab: React.FC<MapTabProps> = ({
                   <div
                     key={item.props.cell_id}
                     onClick={() => { setSelectedCell(item.props); setMobileDrawerOpen(false); }}
-                    className="flex items-center justify-between p-2 rounded-xl bg-[#FBF5DD] border border-[#D5CC94] text-xs cursor-pointer"
+                    className="flex items-center justify-between p-2 rounded-xl bg-[#FBF5DD] border border-[#D5CC94] text-xs cursor-pointer hover:bg-[#F2E8BF]"
                   >
                     <span className="font-bold text-[#0D530E]">{idx + 1}. {item.props.cell_id} ({item.props.desa})</span>
                     <span className="font-extrabold text-[#306D29]">{Math.round((item.scoreRes.score || 0) * 100)}%</span>
@@ -699,96 +600,197 @@ export const MapTab: React.FC<MapTabProps> = ({
             <input type="checkbox" checked={showRoads} onChange={(e) => setShowRoads(e.target.checked)} className="accent-[#D97706] rounded" />
           </label>
         </div>
+      </aside>
+
+      {/* 2. MAP CANVAS AREA (Occupies 100% of the remaining space) */}
+      <div className="flex-1 h-full relative overflow-hidden">
+        
+        <APIProvider apiKey={apiKey}>
+          <Map
+            defaultCenter={{ lat: -8.8475, lng: 116.4883 }}
+            defaultZoom={13}
+            mapTypeId="hybrid"
+            className="w-full h-full"
+            options={{ clickableIcons: false }}
+          >
+            <MapEngine
+              gridData={gridData}
+              roadsData={roadsData}
+              gatheringData={gatheringData}
+              umkmData={umkmData}
+              activeMode={activeMode}
+              selectedYear={selectedYear}
+              showMangrove={showMangrove}
+              showPond={showPond}
+              showRisk={showRisk}
+              showGain={showGain}
+              selectedProduct={activeProduct}
+              selectedQuadrant={selectedQuadrant}
+              showRoads={showRoads}
+              showGathering={showGathering}
+              showUMKM={showUMKM}
+              alertThreatCell={activeAlert}
+              onCellClick={(props: any) => {
+                setSelectedUMKM(null);
+                setSelectedHub(null);
+                setSelectedCell(props);
+              }}
+              onUMKMClick={(u: any) => {
+                setSelectedCell(null);
+                setSelectedHub(null);
+                setSelectedUMKM(u);
+              }}
+              onHubClick={(h: any) => {
+                setSelectedCell(null);
+                setSelectedUMKM(null);
+                setSelectedHub(h);
+              }}
+            />
+          </Map>
+        </APIProvider>
+
+        {/* TOP REAL-TIME ALERT TOAST BANNER */}
+        {activeAlert && (
+          <div className="absolute top-16 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 z-40 bg-[#DC2626] text-white px-4 py-2.5 rounded-2xl shadow-2xl border-2 border-white flex items-center justify-between space-x-3.5 animate-bounce">
+            <div className="flex items-center space-x-2">
+              <Radio className="w-5 h-5 text-white animate-pulse shrink-0" />
+              <div className="text-xs">
+                <span className="font-extrabold uppercase tracking-wide block">🚨 Threat Detected (Pub/Sub)</span>
+                <span className="font-medium text-white/90 text-[11px]">
+                  {activeAlert.village} ({activeAlert.cell_id}) • Threat: {activeAlert.risk} • ~{activeAlert.loss_area} ha
+                </span>
+              </div>
+            </div>
+            <button onClick={() => setActiveAlert(null)} className="p-1 hover:bg-red-800 rounded-lg">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* TOP MODE SWITCHER */}
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-[#E7E1B1] border-2 border-[#D5CC94] rounded-2xl p-1 shadow-xl flex space-x-1">
+          {[
+            { id: 'baseline', label: 'Land Cover', icon: Layers },
+            { id: 'opportunity', label: 'Opportunity', icon: Sparkles },
+            { id: 'quadrant', label: 'Quadrants', icon: Compass },
+          ].map((m) => {
+            const Icon = m.icon;
+            const isActive = activeMode === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => setActiveMode(m.id as any)}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  isActive
+                    ? 'bg-[#306D29] text-[#FBF5DD] shadow'
+                    : 'text-[#0D530E] hover:bg-[#F2E8BF]'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{m.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* MOBILE TOGGLE BUTTON FOR DRAWER */}
+        <button
+          onClick={() => setMobileDrawerOpen(!mobileDrawerOpen)}
+          className="md:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-20 bg-[#306D29] text-[#FBF5DD] px-4 py-2 rounded-full shadow-2xl font-bold text-xs flex items-center space-x-1.5 border-2 border-[#D5CC94]"
+        >
+          <span>{mobileDrawerOpen ? 'Close Controls' : '⚙️ Layer Controls'}</span>
+          {mobileDrawerOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+        </button>
+
+        {/* RIGHT DETAIL INSPECTORS */}
+        {selectedCell && (
+          <div className="absolute bottom-4 right-4 z-20 w-80 max-h-[60vh] bg-[#E7E1B1] border-2 border-[#D5CC94] rounded-3xl shadow-2xl p-4 text-[#0D530E] space-y-3 overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#D5CC94] pb-2">
+              <div>
+                <span className="text-xs text-[#306D29] font-medium block">Inspected 100m Cell</span>
+                <span className="font-extrabold text-[#0D530E] text-base font-mono">{selectedCell.cell_id}</span>
+                <span className="text-xs text-[#306D29] ml-2">({selectedCell.desa})</span>
+              </div>
+              <button onClick={() => setSelectedCell(null)} className="p-1 hover:bg-[#F2E8BF] rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-1.5 text-xs pt-1">
+              <div className="flex justify-between py-1 border-b border-[#D5CC94]/60">
+                <span className="text-[#306D29]">Mangrove Cover:</span>
+                <span className="font-bold text-[#0D530E]">{Math.round((selectedCell.mangrove_frac_2024 || 0) * 100)}%</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-[#D5CC94]/60">
+                <span className="text-[#306D29]">Pond Basin:</span>
+                <span className="font-bold text-[#D97706]">{Math.round((selectedCell.pond_frac_2024 || 0) * 100)}%</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-[#D5CC94]/60">
+                <span className="text-[#306D29]">Conversion Threat:</span>
+                <span className="font-bold text-red-700">{Math.round((selectedCell.p_loss_500m || 0.2) * 100)}%</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-[#306D29]">Coast Distance:</span>
+                <span className="font-bold">{Math.round(selectedCell.dist_coast_m || 0)} m</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* VILLAGE HUB INSPECTOR */}
+        {selectedHub && (
+          <div className="absolute bottom-4 right-4 z-20 w-80 bg-[#E7E1B1] border-2 border-[#0284C7] rounded-3xl shadow-2xl p-4 text-[#0D530E] space-y-2">
+            <div className="flex items-center justify-between border-b border-[#D5CC94] pb-2">
+              <div>
+                <span className="text-[11px] text-[#0284C7] uppercase font-extrabold tracking-wider">Village Anchor</span>
+                <span className="font-extrabold text-[#0D530E] text-base block">{selectedHub.name}</span>
+              </div>
+              <button onClick={() => setSelectedHub(null)} className="p-1 hover:bg-[#F2E8BF] rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-1.5 text-xs">
+              <div className="flex justify-between py-1 border-b border-[#D5CC94]/60">
+                <span className="text-[#306D29]">Category:</span>
+                <span className="font-bold text-[#0284C7] capitalize">{selectedHub.cat?.replace('_', ' ')}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-[#306D29]">Footfall Weight:</span>
+                <span className="font-bold text-[#D97706]">{selectedHub.weight}x</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* UMKM INSPECTOR */}
+        {selectedUMKM && (
+          <div className="absolute bottom-4 right-4 z-20 w-80 bg-[#E7E1B1] border-2 border-[#306D29] rounded-3xl shadow-2xl p-4 text-[#0D530E] space-y-2">
+            <div className="flex items-center justify-between border-b border-[#D5CC94] pb-2">
+              <div>
+                <span className="text-[11px] text-[#306D29] uppercase font-extrabold tracking-wider">Simulated Enterprise</span>
+                <span className="font-extrabold text-[#0D530E] text-base block">{selectedUMKM.name}</span>
+              </div>
+              <button onClick={() => setSelectedUMKM(null)} className="p-1 hover:bg-[#F2E8BF] rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-1.5 text-xs">
+              <div className="flex justify-between py-1 border-b border-[#D5CC94]/60">
+                <span className="text-[#306D29]">Product:</span>
+                <span className="font-bold text-[#0D530E] capitalize">{selectedUMKM.product_id.replace('_', ' ')}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-[#D5CC94]/60">
+                <span className="text-[#306D29]">Village:</span>
+                <span className="font-bold text-[#0D530E]">{selectedUMKM.desa}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-[#306D29]">Monthly Revenue:</span>
+                <span className="font-bold text-[#D97706]">Rp {selectedUMKM.monthly_revenue_idr?.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
-
-      {/* INSPECTOR BOTTOM SHEET FOR MOBILE / RIGHT PANEL FOR DESKTOP */}
-      {selectedCell && (
-        <div className="fixed sm:absolute bottom-0 sm:bottom-auto sm:top-20 right-0 sm:right-4 z-40 w-full sm:w-88 max-h-[70vh] sm:max-h-[82vh] bg-[#E7E1B1] border-t-2 sm:border-2 border-[#D5CC94] rounded-t-3xl sm:rounded-3xl shadow-2xl p-4 text-[#0D530E] space-y-3 overflow-y-auto">
-          <div className="flex items-center justify-between border-b border-[#D5CC94] pb-2">
-            <div>
-              <span className="text-xs text-[#306D29] font-medium block">Inspected 100m Cell</span>
-              <span className="font-extrabold text-[#0D530E] text-base font-mono">{selectedCell.cell_id}</span>
-              <span className="text-xs text-[#306D29] ml-2">({selectedCell.desa})</span>
-            </div>
-            <button onClick={() => setSelectedCell(null)} className="p-1 hover:bg-[#F2E8BF] rounded-lg">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="space-y-2 text-xs pt-2">
-            <div className="flex justify-between py-1 border-b border-[#D5CC94]/60">
-              <span className="text-[#306D29]">Mangrove Cover:</span>
-              <span className="font-bold text-[#0D530E]">{Math.round((selectedCell.mangrove_frac_2024 || 0) * 100)}%</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-[#D5CC94]/60">
-              <span className="text-[#306D29]">Pond Basin:</span>
-              <span className="font-bold text-[#D97706]">{Math.round((selectedCell.pond_frac_2024 || 0) * 100)}%</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-[#D5CC94]/60">
-              <span className="text-[#306D29]">Conversion Threat:</span>
-              <span className="font-bold text-red-700">{Math.round((selectedCell.p_loss_500m || 0.2) * 100)}%</span>
-            </div>
-            <div className="flex justify-between py-1">
-              <span className="text-[#306D29]">Straight-line to Coast:</span>
-              <span className="font-bold">{Math.round(selectedCell.dist_coast_m || 0)} m</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* VILLAGE HUB INSPECTOR */}
-      {selectedHub && (
-        <div className="fixed sm:absolute bottom-0 sm:bottom-auto sm:top-20 right-0 sm:right-4 z-40 w-full sm:w-88 bg-[#E7E1B1] border-t-2 sm:border-2 border-[#0284C7] rounded-t-3xl sm:rounded-3xl shadow-2xl p-4 text-[#0D530E] space-y-3">
-          <div className="flex items-center justify-between border-b border-[#D5CC94] pb-2">
-            <div>
-              <span className="text-[11px] text-[#0284C7] uppercase font-extrabold tracking-wider">Village Anchor</span>
-              <span className="font-extrabold text-[#0D530E] text-base block">{selectedHub.name}</span>
-            </div>
-            <button onClick={() => setSelectedHub(null)} className="p-1 hover:bg-[#F2E8BF] rounded-lg">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="space-y-2 text-xs">
-            <div className="flex justify-between py-1 border-b border-[#D5CC94]/60">
-              <span className="text-[#306D29]">Category:</span>
-              <span className="font-bold text-[#0284C7] capitalize">{selectedHub.cat?.replace('_', ' ')}</span>
-            </div>
-            <div className="flex justify-between py-1">
-              <span className="text-[#306D29]">Footfall Weight:</span>
-              <span className="font-bold text-[#D97706]">{selectedHub.weight}x</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* UMKM INSPECTOR */}
-      {selectedUMKM && (
-        <div className="fixed sm:absolute bottom-0 sm:bottom-auto sm:top-20 right-0 sm:right-4 z-40 w-full sm:w-88 bg-[#E7E1B1] border-t-2 sm:border-2 border-[#306D29] rounded-t-3xl sm:rounded-3xl shadow-2xl p-4 text-[#0D530E] space-y-3">
-          <div className="flex items-center justify-between border-b border-[#D5CC94] pb-2">
-            <div>
-              <span className="text-[11px] text-[#306D29] uppercase font-extrabold tracking-wider">Simulated Enterprise</span>
-              <span className="font-extrabold text-[#0D530E] text-base block">{selectedUMKM.name}</span>
-            </div>
-            <button onClick={() => setSelectedUMKM(null)} className="p-1 hover:bg-[#F2E8BF] rounded-lg">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="space-y-2 text-xs">
-            <div className="flex justify-between py-1 border-b border-[#D5CC94]/60">
-              <span className="text-[#306D29]">Product:</span>
-              <span className="font-bold text-[#0D530E] capitalize">{selectedUMKM.product_id.replace('_', ' ')}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-[#D5CC94]/60">
-              <span className="text-[#306D29]">Village:</span>
-              <span className="font-bold text-[#0D530E]">{selectedUMKM.desa}</span>
-            </div>
-            <div className="flex justify-between py-1">
-              <span className="text-[#306D29]">Monthly Revenue:</span>
-              <span className="font-bold text-[#D97706]">Rp {selectedUMKM.monthly_revenue_idr?.toLocaleString()}</span>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
