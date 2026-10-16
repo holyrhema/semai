@@ -386,15 +386,23 @@ export const MapTab: React.FC<MapTabProps> = ({
       
       {/* 1. DEDICATED LEFT SIDEBAR NAV PANEL (Fixed Width on Desktop) */}
       <aside className={`
-        ${mobileDrawerOpen ? 'translate-y-0' : 'translate-y-full md:translate-y-0'}
+        ${mobileDrawerOpen ? 'translate-y-0 shadow-2xl' : 'translate-y-full md:translate-y-0'}
         transition-transform duration-300 ease-in-out
-        fixed md:static bottom-0 left-0 z-30
-        w-full md:w-80 h-[70vh] md:h-full shrink-0
-        bg-[#E7E1B1] border-t-2 md:border-t-0 md:border-r-2 border-[#D5CC94]
-        shadow-2xl md:shadow-none p-4 text-[#0D530E] space-y-4 overflow-y-auto
+        fixed md:static bottom-0 left-0 z-40 md:z-30
+        w-full md:w-80 max-h-[80vh] md:h-full shrink-0
+        bg-[#E7E1B1] border-t-2 md:border-t-0 md:border-r-2 border-[#D5CC94] rounded-t-3xl md:rounded-none
+        p-4 text-[#0D530E] space-y-3 overflow-y-auto
       `}>
-        {/* Mobile Drag Indicator */}
-        <div className="w-10 h-1 bg-[#D5CC94] rounded-full mx-auto md:hidden mb-2"></div>
+        {/* Mobile Header with Drag Handle & Close (X) Button */}
+        <div className="flex items-center justify-between md:hidden pb-2 border-b border-[#D5CC94]">
+          <span className="text-xs font-black uppercase tracking-wider text-[#0D530E]">Map & Layer Controls</span>
+          <button
+            onClick={() => setMobileDrawerOpen(false)}
+            className="p-1.5 rounded-full bg-[#FBF5DD] border border-[#D5CC94] text-[#0D530E] hover:bg-[#F2E8BF] transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
         {/* SIMULATE ALERT BUTTON */}
         <div className="bg-[#FBF5DD] border-2 border-red-500/50 p-3 rounded-2xl space-y-2 shadow-sm">
