@@ -56,7 +56,7 @@ export default function App() {
         const packs: Record<string, any> = {};
         for (const pId of packsIndex.active_packs || ['mangrove', 'seaweed']) {
           const res = await fetch(`${baseUrl}packs/${pId}.json`);
-          if (res.ok) packsCache[pId] = await res.json();
+          if (res.ok) packs[pId] = await res.json();
         }
 
         setDatasets({ grid, roads, gathering, demand, desa, umkm, packsIndex, packs });
