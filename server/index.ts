@@ -259,7 +259,7 @@ app.post('/api/alert', async (req, res) => {
 🚢 *Response Action Dispatched*:
 *${alertPayload.assigned_unit}* has been alerted via Google Cloud Pub/Sub. Immediate field inspection required.
 
-🔗 [View on SEMAI Live Map](https://semai-hackathon.web.app)
+🔗 [View on SEMAI Live Map](https://semai-485946535221.asia-southeast2.run.app/)
 _(Live event simulation replay: 100m satellite embedding)_`;
 
       try {
